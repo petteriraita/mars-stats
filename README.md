@@ -60,6 +60,8 @@ These settings currently retain 95,816 games, 191,638 player-game rows, and 1.91
 
 Map buttons are single-select by default: clicking a map immediately replaces the previous selection. **Select multiple** enables additive toggling, and **All maps** restores all four supported maps in one click. The selection is shared by Starting Hand and Combinations.
 
+The browser remembers the active page, research/bought generation, searches, rows per page, pagination, sorting, combination type, and card-order lock across reloads. Card previews close on click/tap, scrolling, resizing, page changes, window blur, or Escape.
+
 Available Elo ranges are All, 450+, 500+, and 600+.
 
 Starting Hand reports offers, keep rate, and raw **Average Elo Gain** when bought, not bought, and offered. It is the mean final Elo change of the players in that card group; no cohort baseline is subtracted. Leaving Research Generation blank displays the initial Starting Hand; entering a generation displays locally calculated research-draft statistics, with “kept” meaning bought after the draft.

@@ -5,6 +5,7 @@ const $$ = selector => [...document.querySelectorAll(selector)];
 const numberFormat = new Intl.NumberFormat();
 const DEFAULT_MAPS = ['Tharsis', 'Hellas', 'Elysium', 'Vastitas Borealis'];
 const SETTINGS_VERSION = 3;
+const VIEW_VERSION = 1;
 const ELO_RANGES = {
   all: {min: 0, max: 0, label: 'All table Elo levels'},
   450: {min: 450, max: 0, label: '450+ average table Elo'},
@@ -20,19 +21,67 @@ const COMBINATION_TYPES = {
 };
 const DEFAULT_SETTINGS = {prelude: true, minAverageElo: 450, maxAverageElo: 0, maps: DEFAULT_MAPS, multiMap: false};
 const MINIMUM_METRIC_OBSERVATIONS = 10;
+const STARTING_SORTS = ['name', 'eloKept', 'eloNotKept', 'keepRate', 'offered', 'eloOffered'];
+const COMBINATION_SORTS = ['name1', 'name2', 'gameCount', 'avgEloChange', 'winRate', 'lift1', 'lift2', 'totalLift'];
+const PAGE_SIZES = [10, 25, 50, 100];
+
+function positiveInteger(value, fallback = 1) {
+  const parsed = Number(value);
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : fallback;
+}
+
+function generationValue(value) {
+  const text = String(value ?? '').trim();
+  return text === '' ? '' : String(positiveInteger(text, 0) || '');
+}
+
+function normalizeViewState(saved = {}) {
+  const startingSortValue = STARTING_SORTS.includes(saved.startingSort) ? saved.startingSort : 'eloKept';
+  const combinationSortValue = COMBINATION_SORTS.includes(saved.combinationSort) ? saved.combinationSort : 'totalLift';
+  const type = Object.hasOwn(COMBINATION_TYPES, saved.combinationType) ? saved.combinationType : 'corp-prelude';
+  return {
+    startingGeneration: generationValue(saved.startingGeneration),
+    combinationGeneration: generationValue(saved.combinationGeneration),
+    startingSearch: String(saved.startingSearch ?? ''),
+    combinationSearch1: String(saved.combinationSearch1 ?? ''),
+    combinationSearch2: String(saved.combinationSearch2 ?? ''),
+    startingRows: PAGE_SIZES.includes(Number(saved.startingRows)) ? Number(saved.startingRows) : 25,
+    combinationRows: PAGE_SIZES.includes(Number(saved.combinationRows)) ? Number(saved.combinationRows) : 25,
+    startingSort: startingSortValue,
+    startingDirection: saved.startingDirection === 'asc' ? 'asc' : 'desc',
+    currentPage: positiveInteger(saved.currentPage),
+    combinationType: type,
+    combinationSort: combinationSortValue,
+    combinationDirection: saved.combinationDirection === 'asc' ? 'asc' : 'desc',
+    combinationPage: positiveInteger(saved.combinationPage),
+    keepCardsInView: saved.keepCardsInView === true,
+    lockedCardOrder: Array.isArray(saved.lockedCardOrder) ? saved.lockedCardOrder.map(String).filter(Boolean) : [],
+  };
+}
+
+function loadViewState() {
+  try {
+    const saved = typeof localStorage === 'undefined' ? {} : JSON.parse(localStorage.getItem('marsStatsView') || '{}');
+    return normalizeViewState(saved.version === VIEW_VERSION ? saved : {});
+  } catch {
+    return normalizeViewState();
+  }
+}
+
+const initialView = loadViewState();
 
 let startingHands = [];
 let combinations = [];
-let startingSort = 'eloKept';
-let startingDirection = 'desc';
-let currentPage = 1;
-let combinationPage = 1;
-let combinationType = 'corp-prelude';
-let combinationSort = 'totalLift';
-let combinationDirection = 'desc';
+let startingSort = initialView.startingSort;
+let startingDirection = initialView.startingDirection;
+let currentPage = initialView.currentPage;
+let combinationPage = initialView.combinationPage;
+let combinationType = initialView.combinationType;
+let combinationSort = initialView.combinationSort;
+let combinationDirection = initialView.combinationDirection;
 let combinationRequestId = 0;
-let keepCardsInView = false;
-let lockedCardOrder = [];
+let keepCardsInView = initialView.keepCardsInView;
+let lockedCardOrder = initialView.lockedCardOrder;
 let startingRequestId = 0;
 
 function loadSettings() {
@@ -157,6 +206,33 @@ function saveSettings() {
   if (typeof localStorage !== 'undefined') localStorage.setItem('marsStatsSettings', JSON.stringify({...settings, version: SETTINGS_VERSION}));
 }
 
+function saveViewState() {
+  if (typeof localStorage === 'undefined') return;
+  localStorage.setItem('marsStatsView', JSON.stringify({
+    version: VIEW_VERSION,
+    startingGeneration: $('#startingDraftNumber').value,
+    combinationGeneration: $('#combinationDraftNumber').value,
+    startingSearch: $('#startingSearch').value,
+    combinationSearch1: $('#combinationSearch1').value,
+    combinationSearch2: $('#combinationSearch2').value,
+    startingRows: Number($('#rowsPerPage').value),
+    combinationRows: Number($('#combinationRowsPerPage').value),
+    startingSort, startingDirection, currentPage,
+    combinationType, combinationSort, combinationDirection, combinationPage,
+    keepCardsInView, lockedCardOrder,
+  }));
+}
+
+function restoreViewState() {
+  $('#startingDraftNumber').value = initialView.startingGeneration;
+  $('#combinationDraftNumber').value = initialView.combinationGeneration;
+  $('#startingSearch').value = initialView.startingSearch;
+  $('#combinationSearch1').value = initialView.combinationSearch1;
+  $('#combinationSearch2').value = initialView.combinationSearch2;
+  $('#rowsPerPage').value = String(initialView.startingRows);
+  $('#combinationRowsPerPage').value = String(initialView.combinationRows);
+}
+
 function selectedEloRange() {
   return Object.entries(ELO_RANGES).find(([, range]) => range.min === settings.minAverageElo && range.max === settings.maxAverageElo) || ['450', ELO_RANGES[450]];
 }
@@ -247,6 +323,7 @@ function captureCardOrder() {
 }
 
 function renderStartingHands() {
+  hideCardPreview();
   const rows = filteredStartingRows();
   const pageSize = asNumber($('#rowsPerPage').value, 25);
   const pages = Math.max(1, Math.ceil(rows.length / pageSize));
@@ -270,6 +347,7 @@ function renderStartingHands() {
   $$('[data-start-sort]').forEach(button => {
     button.querySelector('span').textContent = button.dataset.startSort === startingSort ? (startingDirection === 'asc' ? '↑' : '↓') : '↕';
   });
+  saveViewState();
 }
 
 async function selectStartingCard(name) {
@@ -365,6 +443,7 @@ function renderCombinationItem(name, kind, baseline) {
 }
 
 function renderCombinations() {
+  hideCardPreview();
   const config = COMBINATION_TYPES[combinationType];
   const search1 = $('#combinationSearch1').value.trim().toLocaleLowerCase();
   const search2 = $('#combinationSearch2').value.trim().toLocaleLowerCase();
@@ -392,6 +471,7 @@ function renderCombinations() {
       <td class="${tone(row.totalLift)}">${combinationMetric(row.totalLift)}</td>
     </tr>`).join('') : '<tr><td colspan="8" class="empty-cell">No local combinations match these filters.</td></tr>';
   renderCombinationControls();
+  saveViewState();
 }
 
 async function loadStartingHands(preserveCardView = false) {
@@ -413,14 +493,14 @@ async function loadStartingHands(preserveCardView = false) {
   }
 }
 
-async function loadCombinations() {
+async function loadCombinations(preservePage = false) {
   const requestId = ++combinationRequestId;
   setStatus($('#combinationStatus'), $('#combinationMessage'), 'loading', 'Querying the local Parquet database…');
   try {
     const payload = await fetchJson(`/api/combinations?${combinationQuery()}`);
     if (requestId !== combinationRequestId) return;
     combinations = normalizeCombinationPayload(payload);
-    combinationPage = 1;
+    if (!preservePage) combinationPage = 1;
     renderCombinations();
     setStatus($('#combinationStatus'), $('#combinationMessage'), payload.source.games ? 'ready' : 'error', sourceDescription(payload.source));
   } catch (error) {
@@ -451,6 +531,8 @@ function showPage(name, updateHash = true) {
   if (updateHash) history.replaceState(null, '', `#${name}`);
   $('#sidebar').classList.remove('mobile-open');
   $('#sidebarScrim').classList.remove('show');
+  hideCardPreview();
+  saveViewState();
   window.scrollTo({top:0, behavior:'instant'});
 }
 
@@ -468,8 +550,8 @@ $('#menuButton').addEventListener('click', () => { $('#sidebar').classList.add('
 $('#sidebarScrim').addEventListener('click', () => { $('#sidebar').classList.remove('mobile-open'); $('#sidebarScrim').classList.remove('show'); });
 $('#refreshButton').addEventListener('click', event => rebuildDatabase(event.currentTarget));
 $('#refreshCombinations').addEventListener('click', event => rebuildDatabase(event.currentTarget));
-$('#startingSearch').addEventListener('input', () => { currentPage = 1; renderStartingHands(); });
-$('#startingDraftNumber').addEventListener('input', () => loadStartingHands(keepCardsInView));
+$('#startingSearch').addEventListener('input', () => { currentPage = 1; renderStartingHands(); saveViewState(); });
+$('#startingDraftNumber').addEventListener('input', () => { currentPage = 1; saveViewState(); loadStartingHands(keepCardsInView); });
 $$('[data-map-filter]').forEach(button => button.addEventListener('click', () => {
   const map = button.dataset.mapFilter;
   if (!settings.multiMap) {
@@ -490,9 +572,9 @@ $$('[data-all-maps]').forEach(button => button.addEventListener('click', () => {
   settings = {...settings, maps: [...DEFAULT_MAPS]};
   applySettings('Using all maps');
 }));
-$('#rowsPerPage').addEventListener('change', () => { currentPage = 1; renderStartingHands(); });
-$('#previousPage').addEventListener('click', () => { currentPage = Math.max(1, currentPage - 1); renderStartingHands(); });
-$('#nextPage').addEventListener('click', () => { currentPage += 1; renderStartingHands(); });
+$('#rowsPerPage').addEventListener('change', () => { currentPage = 1; renderStartingHands(); saveViewState(); });
+$('#previousPage').addEventListener('click', () => { currentPage = Math.max(1, currentPage - 1); renderStartingHands(); saveViewState(); });
+$('#nextPage').addEventListener('click', () => { currentPage += 1; renderStartingHands(); saveViewState(); });
 $('#startingTableView').addEventListener('click', event => {
   const row = event.target.closest('[data-starting-card]');
   if (row) selectStartingCard(row.dataset.startingCard);
@@ -508,6 +590,7 @@ $('#startingTableView').addEventListener('click', event => {
   else { startingSort = key; startingDirection = key === 'name' ? 'asc' : 'desc'; }
   currentPage = 1;
   renderStartingHands();
+  saveViewState();
 });
 $('#keepCardsInView').addEventListener('click', () => {
   if (keepCardsInView) {
@@ -515,16 +598,18 @@ $('#keepCardsInView').addEventListener('click', () => {
     lockedCardOrder = [];
     renderCardOrderLock();
     renderStartingHands();
+    saveViewState();
     toast('Card order unlocked');
     return;
   }
   captureCardOrder();
   keepCardsInView = true;
   renderCardOrderLock();
+  saveViewState();
   toast('Current card order locked for cohort comparisons');
 });
-['combinationSearch1','combinationSearch2'].forEach(id => $(`#${id}`).addEventListener('input', () => { combinationPage = 1; renderCombinations(); }));
-$('#combinationDraftNumber').addEventListener('input', () => loadCombinations());
+['combinationSearch1','combinationSearch2'].forEach(id => $(`#${id}`).addEventListener('input', () => { combinationPage = 1; renderCombinations(); saveViewState(); }));
+$('#combinationDraftNumber').addEventListener('input', () => { combinationPage = 1; saveViewState(); loadCombinations(); });
 $$('[data-combination-type]').forEach(button => button.addEventListener('click', () => {
   combinationType = button.dataset.combinationType;
   combinationPage = 1;
@@ -533,11 +618,12 @@ $$('[data-combination-type]').forEach(button => button.addEventListener('click',
   $('#combinationSearch1').value = '';
   $('#combinationSearch2').value = '';
   renderCombinationControls();
+  saveViewState();
   loadCombinations();
 }));
-$('#combinationRowsPerPage').addEventListener('change', () => { combinationPage = 1; renderCombinations(); });
-$('#previousCombinationPage').addEventListener('click', () => { combinationPage = Math.max(1, combinationPage - 1); renderCombinations(); });
-$('#nextCombinationPage').addEventListener('click', () => { combinationPage += 1; renderCombinations(); });
+$('#combinationRowsPerPage').addEventListener('change', () => { combinationPage = 1; renderCombinations(); saveViewState(); });
+$('#previousCombinationPage').addEventListener('click', () => { combinationPage = Math.max(1, combinationPage - 1); renderCombinations(); saveViewState(); });
+$('#nextCombinationPage').addEventListener('click', () => { combinationPage += 1; renderCombinations(); saveViewState(); });
 $('.combination-table thead').addEventListener('click', event => {
   const button = event.target.closest('[data-combo-sort]');
   if (!button) return;
@@ -546,6 +632,7 @@ $('.combination-table thead').addEventListener('click', event => {
   else { combinationSort = key; combinationDirection = key.startsWith('name') ? 'asc' : 'desc'; }
   combinationPage = 1;
   renderCombinations();
+  saveViewState();
 });
 
 function showCardPreview(target) {
@@ -579,11 +666,17 @@ function hideCardPreview() {
   });
   table.addEventListener('focusin', event => {
     const target = event.target.closest('[data-card-preview]');
-    if (target) showCardPreview(target);
+    if (target && target.matches(':focus-visible')) showCardPreview(target);
   });
   table.addEventListener('focusout', hideCardPreview);
+  table.addEventListener('mouseleave', hideCardPreview);
 });
 $('#cardPreviewImage').addEventListener('error', hideCardPreview);
+document.addEventListener('pointerdown', hideCardPreview, true);
+document.addEventListener('keydown', event => { if (event.key === 'Escape') hideCardPreview(); });
+window.addEventListener('scroll', hideCardPreview, true);
+window.addEventListener('resize', hideCardPreview);
+window.addEventListener('blur', hideCardPreview);
 $$('[data-prelude-setting]').forEach(button => button.addEventListener('click', () => {
   settings = {...settings, prelude: button.dataset.preludeSetting === 'on'};
   applySettings(settings.prelude ? 'Using Prelude-on games' : 'Using Prelude-off games');
@@ -598,10 +691,11 @@ $('#resetSettings').addEventListener('click', () => {
   applySettings('Competitive defaults restored');
 });
 
-window.__marsStatsTest = {normalizeStartingPayload, normalizeCombinationPayload, metricWithMinimum, signed};
+window.__marsStatsTest = {normalizeStartingPayload, normalizeCombinationPayload, normalizeViewState, metricWithMinimum, signed};
+restoreViewState();
 renderSettings();
 renderCardOrderLock();
 renderCombinationControls();
 showPage(location.hash.slice(1) || 'starting-hands', false);
-loadStartingHands();
-loadCombinations();
+loadStartingHands(true);
+loadCombinations(true);

@@ -8,7 +8,7 @@ const source = fs.readFileSync(new URL('../app.js', `file://${__filename}`), 'ut
 const definitions = source.split("$$('[data-page-link]')")[0];
 const context = {Intl, URLSearchParams, console};
 vm.createContext(context);
-vm.runInContext(`${definitions}\nthis.api = {normalizeStartingPayload, normalizeCombinationPayload, metricWithMinimum, signed};`, context);
+vm.runInContext(`${definitions}\nthis.api = {normalizeStartingPayload, normalizeCombinationPayload, normalizeViewState, metricWithMinimum, signed};`, context);
 
 const starting = context.api.normalizeStartingPayload({data: [{
   cardName: 'Cartel', offeredGames: 20, keptGames: 10, notKeptGames: 10,
@@ -43,5 +43,30 @@ assert.strictEqual(combinations.length, 1);
 assert.strictEqual(combinations[0].name1, 'Cartel');
 assert.strictEqual(combinations[0].avgEloChange, 4);
 assert.strictEqual(combinations[0].totalLift, 3.25);
+
+const restored = context.api.normalizeViewState({
+  startingGeneration: '4', combinationGeneration: '7', startingRows: 50,
+  combinationRows: 100, startingSort: 'offered', startingDirection: 'asc',
+  currentPage: 3, combinationType: 'card-card', combinationSort: 'winRate',
+  combinationDirection: 'asc', combinationPage: 5, keepCardsInView: true,
+  lockedCardOrder: ['Cartel', 'AI Central'],
+});
+assert.strictEqual(restored.startingGeneration, '4');
+assert.strictEqual(restored.combinationGeneration, '7');
+assert.strictEqual(restored.startingRows, 50);
+assert.strictEqual(restored.currentPage, 3);
+assert.strictEqual(restored.combinationType, 'card-card');
+assert.strictEqual(restored.combinationPage, 5);
+assert.strictEqual(restored.keepCardsInView, true);
+
+const invalidView = context.api.normalizeViewState({
+  startingGeneration: '-1', startingRows: 17, startingSort: 'bogus',
+  combinationType: 'bogus', combinationPage: 0,
+});
+assert.strictEqual(invalidView.startingGeneration, '');
+assert.strictEqual(invalidView.startingRows, 25);
+assert.strictEqual(invalidView.startingSort, 'eloKept');
+assert.strictEqual(invalidView.combinationType, 'corp-prelude');
+assert.strictEqual(invalidView.combinationPage, 1);
 
 console.log('Browser data contract OK');
