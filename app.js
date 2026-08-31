@@ -349,8 +349,8 @@ function renderCombinationControls() {
   $('#combinationDraftNumber').disabled = !usesCards;
   $('#combinationDraftNumber').placeholder = usesCards ? 'Starting hand' : 'Not used for this type';
   $('#combinationDraftNote').textContent = usesCards
-    ? 'Leave empty for Starting Hand. This uses the generation in which a project card was selected in the draft, not the generation in which it was played.'
-    : 'Selection generation does not apply because this combination contains no project card.';
+    ? 'Leave empty for Starting Hand. A generation uses project cards bought after that generation’s draft, whether or not they were later played.'
+    : 'Bought generation does not apply because this combination contains no project card.';
   $$('[data-combo-sort]').forEach(button => {
     const indicator = button.lastElementChild;
     if (indicator) indicator.textContent = button.dataset.comboSort === combinationSort

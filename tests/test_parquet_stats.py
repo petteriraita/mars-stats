@@ -31,12 +31,14 @@ class ParquetStatsTests(unittest.TestCase):
             self.assertAlmostEqual(row["avgEloGainKept"], values[4])
             self.assertAlmostEqual(row["avgEloGainNotKept"], values[5])
 
-    def test_draft_generation_two_is_calculated_locally(self) -> None:
+    def test_research_generation_two_uses_bought_cards(self) -> None:
         rows = {row["cardName"]: row for row in parquet_stats.starting_hand_stats(DATASET, "draft", 2)}
         cartel = rows["Cartel"]
         self.assertEqual(cartel["offeredGames"], 12_496)
-        self.assertEqual(cartel["keptGames"], 6_372)
-        self.assertEqual(cartel["notKeptGames"], 6_124)
+        self.assertEqual(cartel["keptGames"], 5_219)
+        self.assertEqual(cartel["notKeptGames"], 7_277)
+        self.assertIn("gc.KeptGen = gc.DrawnGen AS Kept", parquet_stats._draft_offers(DATASET))
+        self.assertNotIn("gc.DraftedGen = gc.DrawnGen AS Kept", parquet_stats._draft_offers(DATASET))
 
     def test_draft_rows_exclude_parser_artifacts(self) -> None:
         valid_cards = {

@@ -51,8 +51,8 @@
               <strong>Active cohort</strong>
               <p class="muted" id="startingCohortSummary"></p>
             </div>
-            <label>Draft Generation<input id="startingDraftNumber" type="number" min="1" inputmode="numeric" placeholder="Showing starting hand — type a generation" /></label>
-            <p class="filter-note">Leave generation empty for Starting Hand. Every card row remains visible; Elo values based on fewer than 10 observations are shown as —. “Keep cards in view” freezes the current order while cohorts change.</p>
+            <label>Research Generation<input id="startingDraftNumber" type="number" min="1" inputmode="numeric" placeholder="Showing starting hand — type a generation" /></label>
+            <p class="filter-note">Leave generation empty for Starting Hand. For later generations, “kept” means bought after drafting. Every card row remains visible; Elo values based on fewer than 10 observations are shown as —. “Keep cards in view” freezes the current order while cohorts change.</p>
             <label>Search Cards<input id="startingSearch" type="search" placeholder="Search by card name..." /></label>
           </aside>
 
@@ -138,7 +138,7 @@
       </section>
 
       <section class="page" data-page="combinations">
-        <header class="page-header"><div><h1>Combinations</h1><p>Discover how pairs of kept starting-hand items—or cards selected in a draft generation—perform together.</p></div><button class="button" id="refreshCombinations" type="button"><svg><use href="#i-refresh"/></svg>Refresh Dataset</button></header>
+        <header class="page-header"><div><h1>Combinations</h1><p>Discover how pairs of bought starting-hand cards—or cards bought in a later generation—perform together.</p></div><button class="button" id="refreshCombinations" type="button"><svg><use href="#i-refresh"/></svg>Refresh Dataset</button></header>
         <div class="source-status loading" id="combinationStatus" role="status" aria-live="polite"><span class="status-dot"></span><span id="combinationMessage">Querying the local Parquet database…</span></div>
         <div class="combination-types" aria-label="Combination type">
           <button class="active" data-combination-type="corp-prelude" type="button">Corp + Prelude</button>
@@ -154,8 +154,8 @@
               <strong>Active cohort</strong>
               <p class="muted" id="combinationCohortSummary"></p>
             </div>
-            <label>Selected in Draft Generation<input id="combinationDraftNumber" type="number" min="1" inputmode="numeric" placeholder="Starting hand" /></label>
-            <p class="filter-note" id="combinationDraftNote">Leave empty for Starting Hand. This uses the generation in which a card was selected in the draft, not the generation in which it was played.</p>
+            <label>Bought in Generation<input id="combinationDraftNumber" type="number" min="1" inputmode="numeric" placeholder="Starting hand" /></label>
+            <p class="filter-note" id="combinationDraftNote">Leave empty for Starting Hand. A generation uses project cards bought after that generation’s draft, whether or not they were later played.</p>
             <label><span id="combinationSlot1FilterLabel">Corporation</span><input id="combinationSearch1" type="search" placeholder="Search corporation..." /></label>
             <label><span id="combinationSlot2FilterLabel">Prelude</span><input id="combinationSearch2" type="search" placeholder="Search prelude..." /></label>
             <p class="filter-note">Every combination remains visible. Elo, win-rate, and lift values based on fewer than 20 games are shown as —.</p>

@@ -154,15 +154,19 @@ def _starting_offers(directory: Path) -> str:
 
 
 def _draft_offers(directory: Path) -> str:
-    # The exported gamecards table retains draft generation and the card selected,
-    # but not the position of a card within the rotating four-card pack. A small
+    # The exported gamecards table retains the generation when a card was offered
+    # and whether it was ultimately kept/bought, but not its position within the
+    # rotating four-card pack. `KeptGen` is populated for all players from the
+    # structured `cards_kept` event; `BoughtGen` is only available for a small
+    # legacy/player-perspective subset and therefore cannot support this analysis.
+    # A small
     # number of parsed replays misclassify UI text, corporations, preludes, and
     # unresolved card IDs as draft cards. Starting-hand cards provide the clean
     # project-card catalog used to reject those malformed rows.
     return f"""
         SELECT DISTINCT gc.TableId, gc.PlayerId, {_normalized_card("gc.Card")} AS Card,
                gc.DrawnGen AS DraftNumber,
-               gc.DraftedGen = gc.DrawnGen AS Kept
+               gc.KeptGen = gc.DrawnGen AS Kept
         FROM read_parquet('{parquet_path(directory, "gamecards")}') gc
         JOIN (
             SELECT DISTINCT {_normalized_card()} AS Card

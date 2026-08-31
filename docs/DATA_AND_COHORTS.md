@@ -20,7 +20,7 @@ Queries run locally with DuckDB. The generated cohort CSVs contain only aggregat
 | `gamestats` | `TableId`, `PlayerCount`, `UpdatedAt` | Player count and snapshot metadata |
 | `gameplayers_canonical` | `TableId`, `PlayerId`, `Position`, `Elo`, `EloChange` | Starting rating and final rating change |
 | `startinghandcards` | `TableId`, `PlayerId`, `Card`, `Kept` | Every project card offered initially and whether it was bought |
-| `gamecards` | `DrawType`, `DrawnGen`, `DraftedGen`, `BoughtGen`, `PlayedGen` | Card lifecycle and draft generation |
+| `gamecards` | `DrawType`, `DrawnGen`, `KeptGen`, `DraftedGen`, `BoughtGen`, `PlayedGen` | Card lifecycle and draft generation |
 
 The public export is not a collection of raw replay logs. It contains enough derived card events to calculate Starting Hand and draft-generation results, but it does **not** retain rotating draft-pack pick position. Exact “first/second/third card picked from this pack” analysis needs raw replay JSON.
 
@@ -76,7 +76,7 @@ No cohort baseline is subtracted in the interface. The API and generated analysi
 
 `Elo delta = group average Elo gain − active cohort average Elo gain`
 
-Combination metrics are computed for five kept-item pairings: corporation + prelude, corporation + project card, prelude + prelude, prelude + project card, and project card + project card. For card-containing modes, a selection generation replaces kept Starting Hand project cards with cards selected during that draft generation (`DraftedGen = DrawnGen`). It does not filter on `PlayedGen`. Rows are never removed for low volume, but Elo, win-rate, and lift metrics are null below 20 player-game observations.
+Combination metrics are computed for five kept-item pairings: corporation + prelude, corporation + project card, prelude + prelude, prelude + project card, and project card + project card. The default project-card population is cards bought in the initial hand (`startinghandcards.Kept = TRUE`). For card-containing modes, a generation replaces those cards with cards bought after that research draft (`KeptGen = DrawnGen`). It does not filter on `DraftedGen` alone or require `PlayedGen`. Rows are never removed for low volume, but Elo, win-rate, and lift metrics are null below 20 player-game observations.
 
 The competitive cohort baseline is currently about `+0.014`, so raw gain and the research delta are nearly identical for that cohort.
 
@@ -84,7 +84,7 @@ Keep rate is:
 
 `100 × kept offers / all offers`
 
-“Not kept” means the project card was present in the initial ten-card offer but not bought. For draft generations, “kept” means `DraftedGen = DrawnGen` in the exported data.
+“Not kept” means the project card was offered but not bought. For later research generations, “kept” means `KeptGen = DrawnGen`; this comes from the all-player `cards_kept` event. The more literally named `BoughtGen` is only populated for a small legacy/player-perspective subset and is not suitable for aggregate analysis.
 
 The UI keeps the full card row but suppresses an Offered, Kept, or Not Kept Average Elo Gain when that particular group has fewer than 10 observations. The API and analysis CSV retain the underlying value and count.
 

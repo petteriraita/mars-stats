@@ -62,17 +62,17 @@ Map buttons are single-select by default: clicking a map immediately replaces th
 
 Available Elo ranges are All, 450+, 500+, and 600+.
 
-Starting Hand reports offers, keep rate, and raw **Average Elo Gain** when kept, not kept, and offered. It is the mean final Elo change of the players in that card group; no cohort baseline is subtracted. Leaving Draft Generation blank displays the Starting Hand; entering a generation displays locally calculated draft statistics.
+Starting Hand reports offers, keep rate, and raw **Average Elo Gain** when bought, not bought, and offered. It is the mean final Elo change of the players in that card group; no cohort baseline is subtracted. Leaving Research Generation blank displays the initial Starting Hand; entering a generation displays locally calculated research-draft statistics, with “kept” meaning bought after the draft.
 
 Every card remains in the table, but an Elo value based on fewer than 10 observations is displayed as `—`. This prevents a handful of results from appearing as a reliable extreme in smaller cohorts.
 
 Enable **Keep cards in view** before changing a cohort to preserve the current page and card order while only the statistics update. Selecting a table sort unlocks the order. Draft Generation reloads immediately as soon as a number is typed.
 
-Draft analysis uses `gamecards.DrawnGen` and `DraftedGen` to calculate the same metrics by generation. The public export does not retain rotating-pack pick position, so pick position is not shown. Exact pick-position analysis still requires raw replay JSON; the legacy importer in `stats_engine.py` remains available for that data.
+Research-draft analysis uses `gamecards.DrawnGen` and `KeptGen` to calculate offered, bought, and not-bought metrics by generation. `KeptGen` comes from the all-player `cards_kept` event; the separate `BoughtGen` field is only populated for a small legacy/player-perspective subset. The public export does not retain rotating-pack pick position, so pick position is not shown. Exact pick-position analysis still requires raw replay JSON; the legacy importer in `stats_engine.py` remains available for that data.
 
 Some exported `gamecards` rows contain parser artifacts (for example Undo controls, corporation/prelude names, unresolved `card_main_*` IDs, or whole-hand descriptions). Draft analysis accepts only names present in the clean 215-card Starting Hand project catalog, so these malformed rows are excluded.
 
-Combinations uses the same selected Prelude, map, and average-table-Elo cohort. It mirrors the TFMStats modes: Corp + Prelude, Corp + Card, Prelude + Prelude, Prelude + Card, and Card + Card. It reports raw Average Elo Gain, win rate, lift versus each item's individual baseline, and total lift. No row-count filter is applied; metrics for combinations with fewer than 20 games are displayed as `—` while the rows remain available. Types containing a project card can instead use cards **selected** in a specified draft generation (`DraftedGen`), which is distinct from the later generation when a card may be played (`PlayedGen`).
+Combinations uses the same Prelude, map, and average-table-Elo cohort. It mirrors the TFMStats modes: Corp + Prelude, Corp + Card, Prelude + Prelude, Prelude + Card, and Card + Card. With no generation entered, project cards are those actually bought in the initial hand (`startinghandcards.Kept = TRUE`). It reports raw Average Elo Gain, win rate, lift versus each item's individual baseline, and total lift. No row-count filter is applied; metrics for combinations with fewer than 20 games are displayed as `—` while the rows remain available. Types containing a project card can instead use cards bought after a specified research draft (`KeptGen = DrawnGen`). Neither mode requires the card to have been played (`PlayedGen`).
 
 Starting Hand and Combinations card thumbnails and hover previews are stored locally under `assets/cards`. They can be refreshed with `.venv/bin/python download_card_images.py`; the source is the public [terraforming-mars/card-images](https://github.com/terraforming-mars/card-images) datastore.
 
