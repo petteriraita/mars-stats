@@ -238,11 +238,13 @@ def initialize_database() -> None:
 if __name__ == "__main__":
     initialize_database()
     port = int(os.environ.get("PORT", "8080"))
+    host = os.environ.get("HOST", "127.0.0.1")
     os.chdir(ROOT)
-    print(f"Terraforming Mars Statistics running at http://localhost:{port}")
+    display_host = "localhost" if host in {"127.0.0.1", "::1"} else host
+    print(f"Terraforming Mars Statistics running at http://{display_host}:{port}")
     if PARQUET_MODE:
         print(f"Local Parquet dataset: {PARQUET_DIRECTORY}")
     else:
         print(f"Local database: {DATABASE}")
         print(f"Replay source: {DATA_DIR}")
-    ThreadingHTTPServer(("127.0.0.1", port), Handler).serve_forever()
+    ThreadingHTTPServer((host, port), Handler).serve_forever()
