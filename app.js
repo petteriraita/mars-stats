@@ -83,6 +83,8 @@ let combinationRequestId = 0;
 let keepCardsInView = initialView.keepCardsInView;
 let lockedCardOrder = initialView.lockedCardOrder;
 let startingRequestId = 0;
+let startingLoaded = false;
+let combinationsLoaded = false;
 
 function loadSettings() {
   try {
@@ -272,7 +274,11 @@ function applySettings(message) {
   saveSettings();
   renderSettings();
   $('#startingDetail').hidden = true;
-  Promise.all([loadStartingHands(keepCardsInView), loadCombinations()]);
+  const activePage = document.querySelector('.page.active')?.dataset.page;
+  const requests = [];
+  if (activePage === 'starting-hands' || startingLoaded) requests.push(loadStartingHands(keepCardsInView));
+  if (activePage === 'combinations' || combinationsLoaded) requests.push(loadCombinations());
+  Promise.all(requests);
   if (message) toast(message);
 }
 
@@ -475,6 +481,7 @@ function renderCombinations() {
 }
 
 async function loadStartingHands(preserveCardView = false) {
+  startingLoaded = true;
   const requestId = ++startingRequestId;
   const previousPage = currentPage;
   setStatus($('#sourceStatus'), $('#sourceMessage'), 'loading', 'Querying the local Parquet database…');
@@ -494,6 +501,7 @@ async function loadStartingHands(preserveCardView = false) {
 }
 
 async function loadCombinations(preservePage = false) {
+  combinationsLoaded = true;
   const requestId = ++combinationRequestId;
   setStatus($('#combinationStatus'), $('#combinationMessage'), 'loading', 'Querying the local Parquet database…');
   try {
@@ -515,7 +523,11 @@ async function rebuildDatabase(button) {
   button.classList.add('busy');
   try {
     const payload = await fetchJson('/api/rebuild', {method:'POST'});
-    await Promise.all([loadStartingHands(), loadCombinations()]);
+    const activePage = document.querySelector('.page.active')?.dataset.page;
+    const requests = [];
+    if (activePage === 'starting-hands' || startingLoaded) requests.push(loadStartingHands());
+    if (activePage === 'combinations' || combinationsLoaded) requests.push(loadCombinations());
+    await Promise.all(requests);
     toast(`Indexed ${fmt(payload.source.games)} player-games and ${fmt(payload.source.offers)} offers`);
   } catch (error) {
     toast(`Rebuild failed: ${error.message}`);
@@ -534,6 +546,8 @@ function showPage(name, updateHash = true) {
   hideCardPreview();
   saveViewState();
   window.scrollTo({top:0, behavior:'instant'});
+  if (name === 'starting-hands' && !startingLoaded) loadStartingHands(true);
+  if (name === 'combinations' && !combinationsLoaded) loadCombinations(true);
 }
 
 function toast(message) {
@@ -697,5 +711,3 @@ renderSettings();
 renderCardOrderLock();
 renderCombinationControls();
 showPage(location.hash.slice(1) || 'starting-hands', false);
-loadStartingHands(true);
-loadCombinations(true);
