@@ -11,6 +11,14 @@ cd /home/pt/dev/mars-stats
 
 Open <http://localhost:8080>.
 
+## Deploy
+
+The repository includes a Render Blueprint. Deploy it with the one-click link:
+
+<https://render.com/deploy?repo=https://github.com/petteriraita/mars-stats>
+
+Render downloads the public Parquet bundle during the build and starts the Python API server. The free service is suitable for a small demo; it may sleep after inactivity and wake with a short delay.
+
 ## Local data
 
 The public database bundle is already downloaded and extracted:
