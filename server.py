@@ -226,7 +226,9 @@ class Handler(SimpleHTTPRequestHandler):
 
 def initialize_database() -> None:
     if PARQUET_MODE:
-        parquet_status(PARQUET_DIRECTORY)
+        # Do not scan the full Parquet bundle before binding the HTTP port.
+        # Render's health check must be able to reach the process immediately;
+        # status is calculated lazily by the /api/status request instead.
         return
     database_exists = DATABASE.exists()
     connection = connect(DATABASE)
