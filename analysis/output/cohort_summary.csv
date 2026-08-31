@@ -1,0 +1,14 @@
+cohort,label,prelude,maps,min_average_elo,games,player_games,starting_hand_offers,cards,cohort_avg_elo_gain,snapshot_updated_at
+tfmstats_reference,TFMStats reference,either,all recorded,0,186815,373637,3727660,215,0.15019658117370602,2026-08-30T09:34:36+00:00
+prelude_all_maps,"Prelude on, every recorded map",on,all recorded,0,174007,348021,3473350,215,0.11493271957726689,2026-08-30T09:34:36+00:00
+prelude_without_amazonis_random,"Prelude on, excluding Amazonis and Random",on,Tharsis|Hellas|Elysium|Vastitas Borealis,0,173130,346267,3455810,215,0.11476404046588326,2026-08-30T09:34:36+00:00
+prelude_standard_maps,"Prelude on, three-map comparison",on,Tharsis|Hellas|Elysium,0,158140,316285,3155990,215,0.11725816905638901,2026-08-30T09:34:36+00:00
+competitive,Competitive pooled,on,Tharsis|Hellas|Elysium|Vastitas Borealis,450,95816,191638,1912730,215,0.013608991953579144,2026-08-30T09:34:36+00:00
+competitive_tharsis,Competitive Tharsis,on,Tharsis,450,49273,98548,981850,215,0.016337216381864673,2026-08-30T09:34:36+00:00
+competitive_not_tharsis,Competitive maps except Tharsis,on,Hellas|Elysium|Vastitas Borealis,450,46543,93090,930880,215,0.01072080782038887,2026-08-30T09:34:36+00:00
+competitive_hellas,Competitive Hellas,on,Hellas,450,26524,53048,530460,215,0.0091049615442618,2026-08-30T09:34:36+00:00
+competitive_not_hellas,Competitive maps except Hellas,on,Tharsis|Elysium|Vastitas Borealis,450,69292,138590,1382270,215,0.015332996608701927,2026-08-30T09:34:36+00:00
+competitive_elysium,Competitive Elysium,on,Elysium,450,10307,20616,206160,215,0.01086534730306558,2026-08-30T09:34:36+00:00
+competitive_not_elysium,Competitive maps except Elysium,on,Tharsis|Hellas|Vastitas Borealis,450,85509,171022,1706570,215,0.013939727052659891,2026-08-30T09:34:36+00:00
+competitive_vastitas,Competitive Vastitas Borealis,on,Vastitas Borealis,450,9712,19426,194260,215,0.014979923813445897,2026-08-30T09:34:36+00:00
+competitive_not_vastitas,Competitive maps except Vastitas,on,Tharsis|Hellas|Elysium,450,86104,172212,1718470,215,0.013454346967690985,2026-08-30T09:34:36+00:00

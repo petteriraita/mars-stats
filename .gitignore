@@ -1,0 +1,10 @@
+data/mars_stats.sqlite3
+data/mars_stats.sqlite3-shm
+data/mars_stats.sqlite3-wal
+data/parsed/
+data/tfmstats_db.zip
+data/tfmstats_db.zip.part
+data/tfmstats_db/
+.venv/
+__pycache__/
+tests/__pycache__/
