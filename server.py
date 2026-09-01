@@ -240,7 +240,9 @@ def initialize_database() -> None:
 if __name__ == "__main__":
     initialize_database()
     port = int(os.environ.get("PORT", "8080"))
-    host = os.environ.get("HOST", "127.0.0.1")
+    # Bind publicly by default for hosted environments such as Render. Set
+    # HOST=127.0.0.1 for a loopback-only local server if desired.
+    host = os.environ.get("HOST", "0.0.0.0")
     os.chdir(ROOT)
     display_host = "localhost" if host in {"127.0.0.1", "::1"} else host
     print(f"Terraforming Mars Statistics running at http://{display_host}:{port}")

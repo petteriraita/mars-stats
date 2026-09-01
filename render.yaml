@@ -3,8 +3,8 @@ services:
     name: mars-stats
     runtime: python
     plan: free
-    buildCommand: pip install -r requirements.txt && python download_dataset.py
-    startCommand: python server.py
+    buildCommand: python -m pip install -r requirements.txt && python download_dataset.py
+    startCommand: python -u server.py
     healthCheckPath: /
     envVars:
       - key: PYTHON_VERSION
