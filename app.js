@@ -21,7 +21,7 @@ const COMBINATION_TYPES = {
 };
 const DEFAULT_SETTINGS = {prelude: true, minAverageElo: 450, maxAverageElo: 0, maps: DEFAULT_MAPS, multiMap: false};
 const MINIMUM_METRIC_OBSERVATIONS = 100;
-const STARTING_SORTS = ['name', 'eloKept', 'eloNotKept', 'keepRate', 'offered', 'eloOffered'];
+const STARTING_SORTS = ['name', 'eloKept', 'eloNotKept', 'winRate', 'keepRate', 'offered', 'eloOffered'];
 const COMBINATION_SORTS = ['name1', 'name2', 'gameCount', 'avgEloChange', 'winRate', 'lift1', 'lift2', 'totalLift'];
 const PAGE_SIZES = [10, 25, 50, 100];
 
