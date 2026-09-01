@@ -238,17 +238,21 @@ def initialize_database() -> None:
 
 
 if __name__ == "__main__":
-    initialize_database()
     port = int(os.environ.get("PORT", "8080"))
     # Bind publicly by default for hosted environments such as Render. Set
     # HOST=127.0.0.1 for a loopback-only local server if desired.
     host = os.environ.get("HOST", "0.0.0.0")
     os.chdir(ROOT)
     display_host = "localhost" if host in {"127.0.0.1", "::1"} else host
-    print(f"Terraforming Mars Statistics running at http://{display_host}:{port}")
+    http_server = ThreadingHTTPServer((host, port), Handler)
+    print(f"Terraforming Mars Statistics running at http://{display_host}:{port}", flush=True)
     if PARQUET_MODE:
-        print(f"Local Parquet dataset: {PARQUET_DIRECTORY}")
+        print(f"Local Parquet dataset: {PARQUET_DIRECTORY}", flush=True)
     else:
-        print(f"Local database: {DATABASE}")
-        print(f"Replay source: {DATA_DIR}")
-    ThreadingHTTPServer((host, port), Handler).serve_forever()
+        print(f"Local database: {DATABASE}", flush=True)
+        print(f"Replay source: {DATA_DIR}", flush=True)
+    # Render supplies PORT. The hosted service can answer health checks
+    # immediately; local SQLite initialization is unnecessary in Parquet mode.
+    if not os.environ.get("PORT"):
+        initialize_database()
+    http_server.serve_forever()
