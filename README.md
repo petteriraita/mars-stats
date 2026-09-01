@@ -54,7 +54,7 @@ The interface then applies competitive defaults chosen for this project:
 - Tharsis, Hellas, Elysium, and Vastitas Borealis;
 - Amazonis Planitia and Random rejected by the API;
 - minimum 450 average table Elo, calculated across both players;
-- every card row retained; individual Elo cells with fewer than 10 observations suppressed.
+- every card row retained; individual Average Elo and Win Rate cells with fewer than 100 observations suppressed.
 
 These settings currently retain 95,816 games, 191,638 player-game rows, and 1.91 million starting-hand offers. They persist in the browser. Prelude is changed on Settings; the four maps and average-table-Elo range are selected directly above the Starting Hand table.
 
@@ -64,9 +64,9 @@ The browser remembers the active page, research/bought generation, searches, row
 
 Available Elo ranges are All, 450+, 500+, and 600+.
 
-Starting Hand reports offers, keep rate, and raw **Average Elo Gain** when bought, not bought, and offered. It is the mean final Elo change of the players in that card group; no cohort baseline is subtracted. Leaving Research Generation blank displays the initial Starting Hand; entering a generation displays locally calculated research-draft statistics, with “kept” meaning bought after the draft.
+Starting Hand reports offers, keep rate, kept win rate, and raw **Average Elo Gain** when bought, not bought, and offered. Kept Win Rate is the percentage of kept-card player-games where the player finished first. It is the mean final Elo change of the players in that card group; no cohort baseline is subtracted. Leaving Research Generation blank displays the initial Starting Hand; entering a generation displays locally calculated research-draft statistics, with “kept” meaning bought after the draft.
 
-Every card remains in the table, but an Elo value based on fewer than 10 observations is displayed as `—`. This prevents a handful of results from appearing as a reliable extreme in smaller cohorts.
+Every card remains in the table, but an Average Elo or Win Rate value based on fewer than 100 observations is displayed as `—`. This prevents a handful of results from appearing as a reliable extreme in smaller cohorts.
 
 Enable **Keep cards in view** before changing a cohort to preserve the current page and card order while only the statistics update. Selecting a table sort unlocks the order. Draft Generation reloads immediately as soon as a number is typed.
 
@@ -74,7 +74,7 @@ Research-draft analysis uses `gamecards.DrawnGen` and `KeptGen` to calculate off
 
 Some exported `gamecards` rows contain parser artifacts (for example Undo controls, corporation/prelude names, unresolved `card_main_*` IDs, or whole-hand descriptions). Draft analysis accepts only names present in the clean 215-card Starting Hand project catalog, so these malformed rows are excluded.
 
-Combinations uses the same Prelude, map, and average-table-Elo cohort. It mirrors the TFMStats modes: Corp + Prelude, Corp + Card, Prelude + Prelude, Prelude + Card, and Card + Card. With no generation entered, project cards are those actually bought in the initial hand (`startinghandcards.Kept = TRUE`). It reports raw Average Elo Gain, win rate, lift versus each item's individual baseline, and total lift. No row-count filter is applied; metrics for combinations with fewer than 20 games are displayed as `—` while the rows remain available. Types containing a project card can instead use cards bought after a specified research draft (`KeptGen = DrawnGen`). Neither mode requires the card to have been played (`PlayedGen`).
+Combinations uses the same Prelude, map, and average-table-Elo cohort. It mirrors the TFMStats modes: Corp + Prelude, Corp + Card, Prelude + Prelude, Prelude + Card, and Card + Card. With no generation entered, project cards are those actually bought in the initial hand (`startinghandcards.Kept = TRUE`). It reports raw Average Elo Gain, win rate, lift versus each item's individual baseline, and each item's kept/not-kept Elo baselines. No row-count filter is applied; metrics for combinations with fewer than 100 games are displayed as `—` while the rows remain available. Types containing a project card can instead use cards bought after a specified research draft (`KeptGen = DrawnGen`). Neither mode requires the card to have been played (`PlayedGen`).
 
 Starting Hand and Combinations card thumbnails and hover previews are stored locally under `assets/cards`. They can be refreshed with `.venv/bin/python download_card_images.py`; the source is the public [terraforming-mars/card-images](https://github.com/terraforming-mars/card-images) datastore.
 

@@ -52,7 +52,7 @@
               <p class="muted" id="startingCohortSummary"></p>
             </div>
             <label>Research Generation<input id="startingDraftNumber" type="number" min="1" inputmode="numeric" placeholder="Showing starting hand — type a generation" /></label>
-            <p class="filter-note">Leave generation empty for Starting Hand. For later generations, “kept” means bought after drafting. Every card row remains visible; Elo values based on fewer than 10 observations are shown as —. “Keep cards in view” freezes the current order while cohorts change.</p>
+            <p class="filter-note">Leave generation empty for Starting Hand. For later generations, “kept” means bought after drafting. Every card row remains visible; Average Elo and Win Rate values based on fewer than 100 observations are shown as —. “Keep cards in view” freezes the current order while cohorts change.</p>
             <label>Search Cards<input id="startingSearch" type="search" placeholder="Search by card name..." /></label>
           </aside>
 
@@ -99,6 +99,7 @@
                     <th><button data-start-sort="name" type="button">Card <span>↕</span></button></th>
                     <th><button data-start-sort="eloKept" type="button">Avg Elo Gain · Kept <span>↓</span></button></th>
                     <th><button data-start-sort="eloNotKept" type="button">Avg Elo Gain · Not Kept <span>↕</span></button></th>
+                    <th><button data-start-sort="winRate" type="button">Win Rate · Kept <span>↕</span></button></th>
                     <th><button data-start-sort="keepRate" type="button">Keep Rate <span>↕</span></button></th>
                     <th><button data-start-sort="offered" type="button">Offers <span>↕</span></button></th>
                     <th><button data-start-sort="eloOffered" type="button">Avg Elo Gain · Offered <span>↕</span></button></th>
@@ -119,6 +120,7 @@
             <div><strong id="detailKeepRate">—</strong><span>Keep rate</span></div>
             <div><strong id="detailKept">—</strong><span>Kept</span></div>
             <div><strong id="detailPassed">—</strong><span>Not kept</span></div>
+            <div><strong id="detailWinRate">—</strong><span>Kept win rate</span></div>
           </div>
           <div class="elo-cards">
             <article><span>Average Elo gain · Kept</span><strong id="eloKept">—</strong></article>
@@ -129,7 +131,7 @@
             <h3>Offer stage breakdown</h3>
             <div class="table-scroll">
               <table>
-                <thead><tr><th>Stage</th><th>Generation</th><th>Offered</th><th>Kept / selected</th><th>Avg Elo Gain · Kept</th><th>Avg Elo Gain · Not Kept</th><th>Avg Elo Gain · Offered</th></tr></thead>
+                <thead><tr><th>Stage</th><th>Generation</th><th>Offered</th><th>Kept / bought</th><th>Avg Elo Gain · Kept</th><th>Avg Elo Gain · Not Kept</th><th>Avg Elo Gain · Offered</th></tr></thead>
                 <tbody id="draftBreakdown"></tbody>
               </table>
             </div>
@@ -158,7 +160,7 @@
             <p class="filter-note" id="combinationDraftNote">Leave empty for Starting Hand. A generation uses project cards bought after that generation’s draft, whether or not they were later played.</p>
             <label><span id="combinationSlot1FilterLabel">Corporation</span><input id="combinationSearch1" type="search" placeholder="Search corporation..." /></label>
             <label><span id="combinationSlot2FilterLabel">Prelude</span><input id="combinationSearch2" type="search" placeholder="Search prelude..." /></label>
-            <p class="filter-note">Every combination remains visible. Elo, win-rate, and lift values based on fewer than 20 games are shown as —.</p>
+            <p class="filter-note">Every combination remains visible. Elo, win-rate, and lift values based on fewer than 100 games are shown as —. The values beneath each item show its kept and not-kept Elo baselines.</p>
           </aside>
           <div class="combination-results">
             <div class="starting-toolbar combination-toolbar">
@@ -227,7 +229,7 @@
               <div><strong>2</strong><span>Players</span></div>
               <div><strong>On</strong><span>Draft</span></div>
               <div><strong>Off</strong><span>Colonies</span></div>
-              <div><strong>10</strong><span>Starting Hand threshold</span></div>
+              <div><strong>100</strong><span>Metrics threshold</span></div>
             </div>
           </section>
         </div>

@@ -20,7 +20,7 @@ const COMBINATION_TYPES = {
   'card-card': {label:'Card + Card', slot1:'Card 1', slot2:'Card 2', kind1:'card', kind2:'card'},
 };
 const DEFAULT_SETTINGS = {prelude: true, minAverageElo: 450, maxAverageElo: 0, maps: DEFAULT_MAPS, multiMap: false};
-const MINIMUM_METRIC_OBSERVATIONS = 10;
+const MINIMUM_METRIC_OBSERVATIONS = 100;
 const STARTING_SORTS = ['name', 'eloKept', 'eloNotKept', 'keepRate', 'offered', 'eloOffered'];
 const COMBINATION_SORTS = ['name1', 'name2', 'gameCount', 'avgEloChange', 'winRate', 'lift1', 'lift2', 'totalLift'];
 const PAGE_SIZES = [10, 25, 50, 100];
@@ -79,6 +79,10 @@ let combinationPage = initialView.combinationPage;
 let combinationType = initialView.combinationType;
 let combinationSort = initialView.combinationSort;
 let combinationDirection = initialView.combinationDirection;
+const combinationSearchMemory = {};
+const initialCombinationConfig = COMBINATION_TYPES[initialView.combinationType];
+combinationSearchMemory[initialCombinationConfig.kind1] = initialView.combinationSearch1;
+combinationSearchMemory[initialCombinationConfig.kind2] = initialView.combinationSearch2;
 let combinationRequestId = 0;
 let keepCardsInView = initialView.keepCardsInView;
 let lockedCardOrder = initialView.lockedCardOrder;
@@ -148,6 +152,7 @@ function normalizeStartingPayload(payload) {
     return {
       name: String(row.cardName ?? ''), offered, kept, notKept,
       keepRate: asNumber(row.keepRate),
+      winRate: metricWithMinimum(row.winRateKept ?? row.winRate, kept),
       eloOffered: metricWithMinimum(row.avgEloGainOffered ?? row.avgEloDeltaOffered, offered),
       eloKept: metricWithMinimum(row.avgEloGainKept ?? row.avgEloDeltaKept, kept),
       eloNotKept: metricWithMinimum(row.avgEloGainNotKept ?? row.avgEloDeltaNotKept, notKept),
@@ -163,6 +168,7 @@ function normalizeCombinationPayload(payload) {
     avgEloChange: nullableNumber(row.avgEloChange ?? row.avgEloGain ?? row.avgEloDelta),
     winRate: nullableNumber(row.winRate),
     baseline1Elo: nullableNumber(row.baseline1Elo), baseline2Elo: nullableNumber(row.baseline2Elo),
+    notKept1Elo: nullableNumber(row.notKept1Elo), notKept2Elo: nullableNumber(row.notKept2Elo),
     lift1: nullableNumber(row.lift1), lift2: nullableNumber(row.lift2),
     totalLift: nullableNumber(row.totalLift ?? row.vsBaseline),
   })).filter(row => row.name1 && row.name2 && row.gameCount > 0);
@@ -345,10 +351,11 @@ function renderStartingHands() {
       <td><div class="card-name" tabindex="0" data-card-preview="true" data-card-name="${safe(row.name)}" data-card-kind="card" data-card-image="${safe(cardImage(row.name, 'card'))}"><img class="card-image-thumb" src="${safe(cardImage(row.name, 'card'))}" alt="" onerror="this.hidden=true" /><span>${safe(row.name)}</span></div></td>
       <td class="${tone(row.eloKept)}">${signed(row.eloKept)}</td>
       <td class="${tone(row.eloNotKept)}">${signed(row.eloNotKept)}</td>
+      <td>${row.winRate === null ? '—' : `${row.winRate.toFixed(1)}%`}</td>
       <td>${row.keepRate.toFixed(1)}%</td>
       <td class="muted">${fmt(row.offered)}</td>
       <td class="${tone(row.eloOffered)}">${signed(row.eloOffered)}</td>
-    </tr>`).join('') : '<tr><td colspan="6" class="empty-cell">No local records match these filters.</td></tr>';
+    </tr>`).join('') : '<tr><td colspan="7" class="empty-cell">No local records match these filters.</td></tr>';
 
   $$('[data-start-sort]').forEach(button => {
     button.querySelector('span').textContent = button.dataset.startSort === startingSort ? (startingDirection === 'asc' ? '↑' : '↓') : '↕';
@@ -364,6 +371,7 @@ async function selectStartingCard(name) {
   $('#detailKeepRate').textContent = `${row.keepRate.toFixed(1)}%`;
   $('#detailKept').textContent = fmt(row.kept);
   $('#detailPassed').textContent = fmt(row.notKept);
+  $('#detailWinRate').textContent = row.winRate === null ? '—' : `${row.winRate.toFixed(1)}%`;
   $('#eloOffered').textContent = signed(row.eloOffered);
   $('#eloKept').textContent = signed(row.eloKept);
   $('#eloPassed').textContent = signed(row.eloNotKept);
@@ -442,9 +450,9 @@ function renderCombinationControls() {
   });
 }
 
-function renderCombinationItem(name, kind, baseline) {
+function renderCombinationItem(name, kind, baseline, notKeptBaseline) {
   const image = cardImage(name, kind);
-  const baselineText = baseline === null ? '' : ` <small>(${signed(baseline)})</small>`;
+  const baselineText = baseline === null && notKeptBaseline === null ? '' : `<small>Kept ${signed(baseline)} · Not kept ${signed(notKeptBaseline)}</small>`;
   return `<div class="combination-item" tabindex="0" data-card-preview="true" data-card-name="${safe(name)}" data-card-kind="${safe(kind)}" data-card-image="${safe(image)}"><img src="${safe(image)}" alt="" onerror="this.hidden=true" /><span>${safe(name)}${baselineText}</span></div>`;
 }
 
@@ -467,8 +475,8 @@ function renderCombinations() {
   $('#nextCombinationPage').disabled = combinationPage >= pages;
   $('#combinationTable').innerHTML = visible.length ? visible.map(row => `
     <tr>
-      <td>${renderCombinationItem(row.name1, config.kind1, row.baseline1Elo)}</td>
-      <td>${renderCombinationItem(row.name2, config.kind2, row.baseline2Elo)}</td>
+      <td>${renderCombinationItem(row.name1, config.kind1, row.baseline1Elo, row.notKept1Elo)}</td>
+      <td>${renderCombinationItem(row.name2, config.kind2, row.baseline2Elo, row.notKept2Elo)}</td>
       <td class="muted">${fmt(row.gameCount)}</td>
       <td class="${tone(row.avgEloChange)}">${combinationMetric(row.avgEloChange)}</td>
       <td>${combinationPercent(row.winRate)}</td>
@@ -625,12 +633,16 @@ $('#keepCardsInView').addEventListener('click', () => {
 ['combinationSearch1','combinationSearch2'].forEach(id => $(`#${id}`).addEventListener('input', () => { combinationPage = 1; renderCombinations(); saveViewState(); }));
 $('#combinationDraftNumber').addEventListener('input', () => { combinationPage = 1; saveViewState(); loadCombinations(); });
 $$('[data-combination-type]').forEach(button => button.addEventListener('click', () => {
+  const oldConfig = COMBINATION_TYPES[combinationType];
+  combinationSearchMemory[oldConfig.kind1] = $('#combinationSearch1').value;
+  combinationSearchMemory[oldConfig.kind2] = $('#combinationSearch2').value;
   combinationType = button.dataset.combinationType;
+  const nextConfig = COMBINATION_TYPES[combinationType];
   combinationPage = 1;
   combinationSort = 'totalLift';
   combinationDirection = 'desc';
-  $('#combinationSearch1').value = '';
-  $('#combinationSearch2').value = '';
+  $('#combinationSearch1').value = combinationSearchMemory[nextConfig.kind1] || '';
+  $('#combinationSearch2').value = combinationSearchMemory[nextConfig.kind2] || '';
   renderCombinationControls();
   saveViewState();
   loadCombinations();

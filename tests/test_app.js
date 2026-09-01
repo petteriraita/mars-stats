@@ -11,8 +11,8 @@ vm.createContext(context);
 vm.runInContext(`${definitions}\nthis.api = {normalizeStartingPayload, normalizeCombinationPayload, normalizeViewState, metricWithMinimum, signed};`, context);
 
 const starting = context.api.normalizeStartingPayload({data: [{
-  cardName: 'Cartel', offeredGames: 20, keptGames: 10, notKeptGames: 10,
-  keepRate: 50, avgEloGainOffered: 1, avgEloGainKept: 4,
+  cardName: 'Cartel', offeredGames: 200, keptGames: 100, notKeptGames: 100,
+  keepRate: 50, winRateKept: 60, avgEloGainOffered: 1, avgEloGainKept: 4,
   avgEloGainNotKept: -2, avgEloDeltaOffered: 0.75,
   avgEloDeltaKept: 3.75, avgEloDeltaNotKept: -2.25,
 }]});
@@ -21,6 +21,7 @@ assert.strictEqual(starting[0].name, 'Cartel');
 assert.strictEqual(starting[0].eloOffered, 1);
 assert.strictEqual(starting[0].eloKept, 4);
 assert.strictEqual(starting[0].eloNotKept, -2);
+assert.strictEqual(starting[0].winRate, 60);
 assert.strictEqual(context.api.signed(null), '—');
 assert.strictEqual(context.api.signed(-2), '−2.00');
 
@@ -31,8 +32,8 @@ const sparse = context.api.normalizeStartingPayload({data: [{
 assert.strictEqual(sparse.eloOffered, 2);
 assert.strictEqual(sparse.eloKept, null);
 assert.strictEqual(sparse.eloNotKept, 1);
-assert.strictEqual(context.api.metricWithMinimum(99, 9), null);
-assert.strictEqual(context.api.metricWithMinimum(99, 10), 99);
+assert.strictEqual(context.api.metricWithMinimum(99, 99), null);
+assert.strictEqual(context.api.metricWithMinimum(99, 100), 99);
 
 const combinations = context.api.normalizeCombinationPayload({combinations: [{
   name1: 'Cartel', name2: 'Earth Office', gameCount: 100, winRate: 0.55,

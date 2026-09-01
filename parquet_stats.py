@@ -47,7 +47,8 @@ COMBINATION_TYPES = {
     "prelude-card": ("prelude", "card"),
     "card-card": ("card", "card"),
 }
-MINIMUM_COMBINATION_OBSERVATIONS = 20
+MINIMUM_METRIC_OBSERVATIONS = 100
+MINIMUM_COMBINATION_OBSERVATIONS = MINIMUM_METRIC_OBSERVATIONS
 
 
 def _sql_path(path: Path) -> str:
@@ -218,6 +219,9 @@ def starting_hand_stats(
                CAST(sum(CASE WHEN co.Kept = TRUE THEN 1 ELSE 0 END) AS BIGINT) AS keptGames,
                CAST(sum(CASE WHEN co.Kept IS DISTINCT FROM TRUE THEN 1 ELSE 0 END) AS BIGINT) AS notKeptGames,
                100.0 * sum(CASE WHEN co.Kept = TRUE THEN 1 ELSE 0 END) / nullif(count(*), 0) AS keepRate,
+               CASE WHEN count(*) FILTER (WHERE co.Kept = TRUE) >= {MINIMUM_METRIC_OBSERVATIONS}
+                    THEN 100.0 * avg(CASE WHEN co.Kept = TRUE AND ap.Position = 1 THEN 1.0 WHEN co.Kept = TRUE THEN 0.0 END)
+               END AS winRateKept,
                avg(ap.EloChange) AS avgEloGainOffered,
                avg(CASE WHEN co.Kept = TRUE THEN ap.EloChange END) AS avgEloGainKept,
                avg(CASE WHEN co.Kept IS DISTINCT FROM TRUE THEN ap.EloChange END) AS avgEloGainNotKept,
@@ -322,6 +326,30 @@ def _combination_items(
     """
 
 
+def _combination_not_kept_items(
+    directory: Path,
+    kind: str,
+    *,
+    stage: str,
+    draft_number: int | None,
+) -> str:
+    if kind != "card":
+        return "SELECT NULL::INTEGER AS TableId, NULL::INTEGER AS PlayerId, NULL::VARCHAR AS Name WHERE FALSE"
+    if stage == "starting_hand":
+        return f"""
+            SELECT DISTINCT TableId, PlayerId, Card AS Name
+            FROM ({_starting_offers(directory)})
+            WHERE Kept IS DISTINCT FROM TRUE
+              AND Card NOT IN ('City', 'Greenery', 'Aquifer', 'Sell patents')
+        """
+    generation_filter = f"AND DraftNumber = {int(draft_number)}" if draft_number is not None else ""
+    return f"""
+        SELECT DISTINCT TableId, PlayerId, Card AS Name
+        FROM ({_draft_offers(directory)})
+        WHERE Kept IS DISTINCT FROM TRUE {generation_filter}
+    """
+
+
 def combination_stats(
     directory: Path = DEFAULT_PARQUET_DIR,
     *,
@@ -348,6 +376,12 @@ def combination_stats(
     second_items = _combination_items(
         directory, second_kind, stage=stage, draft_number=draft_number
     )
+    first_not_kept_items = _combination_not_kept_items(
+        directory, first_kind, stage=stage, draft_number=draft_number
+    )
+    second_not_kept_items = _combination_not_kept_items(
+        directory, second_kind, stage=stage, draft_number=draft_number
+    )
     same_kind_filter = "AND i1.Name < i2.Name" if first_kind == second_kind else ""
 
     # A generation-specific card view compares every item inside the population
@@ -371,6 +405,8 @@ def combination_stats(
              active_players AS ({active_players}),
              first_items AS ({first_items}),
              second_items AS ({second_items}),
+             first_not_kept_items AS ({first_not_kept_items}),
+             second_not_kept_items AS ({second_not_kept_items}),
              first_baselines AS (
                  SELECT i.Name,
                         count(*) AS gameCount,
@@ -386,6 +422,22 @@ def combination_stats(
                         CASE WHEN count(*) >= {MINIMUM_COMBINATION_OBSERVATIONS} THEN avg(ap.EloChange) END AS avgEloChange,
                         CASE WHEN count(*) >= {MINIMUM_COMBINATION_OBSERVATIONS} THEN avg(CASE WHEN ap.Position = 1 THEN 1.0 ELSE 0.0 END) END AS winRate
                  FROM second_items i
+                 JOIN active_players ap USING (TableId, PlayerId)
+                 GROUP BY i.Name
+             ),
+             first_not_kept_baselines AS (
+                 SELECT i.Name,
+                        count(*) AS gameCount,
+                        CASE WHEN count(*) >= {MINIMUM_COMBINATION_OBSERVATIONS} THEN avg(ap.EloChange) END AS avgEloChange
+                 FROM first_not_kept_items i
+                 JOIN active_players ap USING (TableId, PlayerId)
+                 GROUP BY i.Name
+             ),
+             second_not_kept_baselines AS (
+                 SELECT i.Name,
+                        count(*) AS gameCount,
+                        CASE WHEN count(*) >= {MINIMUM_COMBINATION_OBSERVATIONS} THEN avg(ap.EloChange) END AS avgEloChange
+                 FROM second_not_kept_items i
                  JOIN active_players ap USING (TableId, PlayerId)
                  GROUP BY i.Name
              ),
@@ -405,6 +457,8 @@ def combination_stats(
                c.avgEloChange, c.winRate,
                b1.avgEloChange AS baseline1Elo,
                b2.avgEloChange AS baseline2Elo,
+               b1n.avgEloChange AS notKept1Elo,
+               b2n.avgEloChange AS notKept2Elo,
                CAST(b1.gameCount AS BIGINT) AS baseline1Games,
                CAST(b2.gameCount AS BIGINT) AS baseline2Games,
                CASE WHEN c.avgEloChange IS NOT NULL AND b1.avgEloChange IS NOT NULL
@@ -417,6 +471,8 @@ def combination_stats(
         FROM combo_values c
         JOIN first_baselines b1 ON b1.Name = c.name1
         JOIN second_baselines b2 ON b2.Name = c.name2
+        LEFT JOIN first_not_kept_baselines b1n ON b1n.Name = c.name1
+        LEFT JOIN second_not_kept_baselines b2n ON b2n.Name = c.name2
         ORDER BY totalLift DESC NULLS LAST, c.gameCount DESC, c.name1, c.name2
     """
     with duckdb.connect() as connection:

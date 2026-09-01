@@ -83,7 +83,9 @@ class ParquetStatsTests(unittest.TestCase):
             if (row["name1"], row["name2"]) == ("Deimos Down", "Worms")
         )
         self.assertEqual(twenty["gameCount"], 20)
-        self.assertIsNotNone(twenty["avgEloChange"])
+        self.assertIsNone(twenty["avgEloChange"])
+        hundred = next(row for row in rows if row["gameCount"] >= 100 and row["avgEloChange"] is not None)
+        self.assertIsNotNone(hundred["winRate"])
 
     def test_all_combination_types_and_draft_generation_are_available(self) -> None:
         for combination_type in parquet_stats.COMBINATION_TYPES:

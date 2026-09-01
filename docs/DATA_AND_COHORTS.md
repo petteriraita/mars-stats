@@ -56,7 +56,7 @@ The default app cohort keeps the same base rules and adds:
 - Prelude on;
 - Tharsis, Hellas, Elysium, or Vastitas Borealis;
 - average table Elo at least 450, calculated from the players' starting `Elo` values;
-- at least 100 offers for a card to appear in the UI.
+- every card retained; metrics with fewer than 100 observations are suppressed in the UI.
 
 It contains 95,816 distinct games, 191,638 player-game rows, and 1,912,730 Starting Hand card offers. The map split is 49,273 Tharsis, 26,524 Hellas, 10,307 Elysium, and 9,712 Vastitas Borealis games.
 
@@ -76,7 +76,7 @@ No cohort baseline is subtracted in the interface. The API and generated analysi
 
 `Elo delta = group average Elo gain − active cohort average Elo gain`
 
-Combination metrics are computed for five kept-item pairings: corporation + prelude, corporation + project card, prelude + prelude, prelude + project card, and project card + project card. The default project-card population is cards bought in the initial hand (`startinghandcards.Kept = TRUE`). For card-containing modes, a generation replaces those cards with cards bought after that research draft (`KeptGen = DrawnGen`). It does not filter on `DraftedGen` alone or require `PlayedGen`. Rows are never removed for low volume, but Elo, win-rate, and lift metrics are null below 20 player-game observations.
+Combination metrics are computed for five kept-item pairings: corporation + prelude, corporation + project card, prelude + prelude, prelude + project card, and project card + project card. The default project-card population is cards bought in the initial hand (`startinghandcards.Kept = TRUE`). For card-containing modes, a generation replaces those cards with cards bought after that research draft (`KeptGen = DrawnGen`). It does not filter on `DraftedGen` alone or require `PlayedGen`. Rows are never removed for low volume, but Elo, win-rate, lift, and item baseline metrics are null below 100 player-game observations.
 
 The competitive cohort baseline is currently about `+0.014`, so raw gain and the research delta are nearly identical for that cohort.
 
@@ -86,7 +86,7 @@ Keep rate is:
 
 “Not kept” means the project card was offered but not bought. For later research generations, “kept” means `KeptGen = DrawnGen`; this comes from the all-player `cards_kept` event. The more literally named `BoughtGen` is only populated for a small legacy/player-perspective subset and is not suitable for aggregate analysis.
 
-The UI keeps the full card row but suppresses an Offered, Kept, or Not Kept Average Elo Gain when that particular group has fewer than 10 observations. The API and analysis CSV retain the underlying value and count.
+The UI keeps the full card row but suppresses an Offered, Kept, Not Kept Average Elo Gain, or Kept Win Rate when that particular group has fewer than 100 observations. The API and analysis CSV retain the underlying value and count.
 
 The optional **Keep cards in view** control freezes the currently sorted card order and page during cohort changes, which supports side-by-side visual comparisons. It changes presentation only; it does not alter the query or statistics.
 
