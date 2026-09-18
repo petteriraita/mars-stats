@@ -8,3 +8,4 @@ data/tfmstats_db/
 .venv/
 __pycache__/
 tests/__pycache__/
+server exited unexpectedly

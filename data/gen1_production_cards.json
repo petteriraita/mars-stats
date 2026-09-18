@@ -1,0 +1,36 @@
+{
+  "assumptions": {
+    "cardPurchaseCost": 3,
+    "victoryPointValueMc": 1,
+    "estimatedTags": ["earth", "space", "jovian", "science"],
+    "method": "Corporation-stratified Gen-1 played-versus-not-played Elo; non-negative weighted least squares"
+  },
+  "cards": [
+    {"name":"Sponsors","playCost":6,"production":{"mc":2},"tags":["earth"],"expectedVictoryPoints":0,"anchor":"mc"},
+    {"name":"Acquired Company","playCost":10,"production":{"mc":3},"tags":["earth"],"expectedVictoryPoints":0,"anchor":"mc"},
+    {"name":"Immigration Shuttles","playCost":31,"production":{"mc":5},"tags":["earth","space"],"expectedVictoryPoints":2,"anchor":"mc"},
+    {"name":"Callisto Penal Mines","playCost":24,"production":{"mc":3},"tags":["space","jovian"],"expectedVictoryPoints":2,"anchor":"mc"},
+    {"name":"Titanium Mine","playCost":7,"production":{"titanium":1},"tags":[],"expectedVictoryPoints":0,"anchor":"titanium"},
+    {"name":"Vesta Shipyard","playCost":15,"production":{"titanium":1},"tags":["space","jovian"],"expectedVictoryPoints":1,"anchor":"titanium"},
+    {"name":"Asteroid Mining","playCost":30,"production":{"titanium":2},"tags":["space","jovian"],"expectedVictoryPoints":2,"anchor":"titanium"},
+    {"name":"Io Mining Industries","playCost":41,"production":{"mc":2,"titanium":2},"tags":["space","jovian"],"expectedVictoryPoints":4.2,"anchor":"titanium","note":"Uses 4.2 expected end-game VP from the reference analysis"},
+    {"name":"Phobos Space Haven","playCost":25,"production":{"titanium":1},"tags":["space"],"expectedVictoryPoints":3,"anchor":"titanium"},
+    {"name":"Power Plant","playCost":4,"production":{"energy":1},"tags":[],"expectedVictoryPoints":0,"anchor":"energy"},
+    {"name":"Geothermal Power","playCost":11,"production":{"energy":2},"tags":[],"expectedVictoryPoints":0,"anchor":"energy"},
+    {"name":"Nuclear Power","playCost":10,"production":{"mc":-2,"energy":3},"tags":[],"expectedVictoryPoints":0,"anchor":"energy"},
+    {"name":"Peroxide Power","playCost":7,"production":{"mc":-1,"energy":2},"tags":[],"expectedVictoryPoints":0,"anchor":"energy"},
+    {"name":"Giant Space Mirror","playCost":17,"production":{"energy":3},"tags":["space"],"expectedVictoryPoints":0,"anchor":"energy"},
+    {"name":"Mine","playCost":4,"production":{"steel":1},"tags":[],"expectedVictoryPoints":0,"anchor":"steel"},
+    {"name":"Building Industries","playCost":6,"production":{"steel":2,"energy":-1},"tags":[],"expectedVictoryPoints":0,"anchor":"steel"},
+    {"name":"Industrial Microbes","playCost":12,"production":{"steel":1,"energy":1},"tags":[],"expectedVictoryPoints":0,"anchor":"steel"},
+    {"name":"Micro-Mills","playCost":3,"production":{"heat":1},"tags":[],"expectedVictoryPoints":0,"anchor":"heat"},
+    {"name":"Import of Advanced GHG","playCost":9,"production":{"heat":2},"tags":["earth","space"],"expectedVictoryPoints":0,"anchor":"heat"},
+    {"name":"Soletta","playCost":35,"production":{"heat":7},"tags":["space"],"expectedVictoryPoints":0,"anchor":"heat"},
+    {"name":"Adapted Lichen","playCost":9,"production":{"plant":1},"tags":[],"expectedVictoryPoints":0,"anchor":"plant"},
+    {"name":"Lichen","playCost":7,"production":{"plant":1},"tags":[],"expectedVictoryPoints":0,"anchor":"plant"},
+    {"name":"Designed Microorganisms","playCost":16,"production":{"plant":2},"tags":["science"],"expectedVictoryPoints":0,"anchor":"plant"},
+    {"name":"Search For Life","playCost":3,"production":{},"tags":["science"],"expectedVictoryPoints":0,"anchor":"tag"},
+    {"name":"Trans-Neptune Probe","playCost":6,"production":{},"tags":["space","science"],"expectedVictoryPoints":1,"anchor":"tag"},
+    {"name":"Investment Loan","playCost":3,"immediateMc":10,"production":{"mc":-1},"tags":["earth"],"expectedVictoryPoints":0,"anchor":"tag"}
+  ]
+}

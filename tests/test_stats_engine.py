@@ -58,12 +58,12 @@ def hstrand_game() -> dict:
             {"move_number": 1, "action_type": "other", "card_options": {"p1": p1_cards, "p2": p2_cards}, "game_state": state(1)},
             {"move_number": 2, "action_type": "pass", "card_options": {"p1": ["A", "B", "C", "D"], "p2": ["E", "F", "G", "H"]}, "game_state": state(2)},
             {"move_number": 3, "action_type": "draft", "player_id": "p1", "card_drafted": "A", "game_state": state(2)},
-            {"move_number": 4, "action_type": "draft", "player_id": "p2", "card_drafted": "E", "game_state": state(2)},
+            {"move_number": 4, "action_type": "draft", "player_id": "p2", "card_drafted": "E", "card_options": {"p1": ["F", "G", "H"], "p2": ["B", "C", "D"]}, "game_state": state(2)},
             {"move_number": 5, "action_type": "draft", "player_id": "p1", "card_drafted": "F", "game_state": state(2)},
-            {"move_number": 6, "action_type": "draft", "player_id": "p2", "card_drafted": "B", "game_state": state(2)},
+            {"move_number": 6, "action_type": "draft", "player_id": "p2", "card_drafted": "B", "card_options": {"p1": ["C", "D"], "p2": ["G", "H"]}, "game_state": state(2)},
             {"move_number": 7, "action_type": "draft", "player_id": "p1", "card_drafted": "C", "game_state": state(2)},
-            {"move_number": 8, "action_type": "draft", "player_id": "p2", "card_drafted": "G", "game_state": state(2)},
-            {"move_number": 9, "action_type": "buy_card", "cards_kept": {"p1": ["A"], "p2": ["E"]}, "game_state": state(2)},
+            {"move_number": 8, "action_type": "draft", "player_id": "p2", "card_drafted": "G", "card_options": {"p1": ["H"], "p2": ["D"]}, "game_state": state(2)},
+            {"move_number": 9, "action_type": "buy_card", "player_id": "p1", "card_drafted": "A", "cards_kept": {"p1": ["A"], "p2": ["E"]}, "game_state": state(2)},
         ],
     }
 
@@ -152,17 +152,50 @@ class StatsEngineTests(unittest.TestCase):
         database = Path(self.temporary.name) / "native.sqlite3"
         result = rebuild(source, database)
         self.assertEqual(result["games"], 2)
-        self.assertEqual(result["offers"], 38)
+        self.assertEqual(result["offers"], 28)
         connection = connect(database)
-        pick_two = {row["cardName"]: row for row in starting_hand_stats(connection, "draft", 2, 2)}
-        pick_four = starting_hand_stats(connection, "draft", 2, 4)
+        draft = {row["cardName"]: row for row in starting_hand_stats(connection, "draft", 2)}
+        p1_rows = connection.execute(
+            """SELECT card_name, kept FROM card_offers
+               WHERE game_id = 'native-1' AND player_id = 'p1'
+                 AND stage = 'draft' AND draft_number = 2
+               ORDER BY card_name"""
+        ).fetchall()
+        p2_rows = connection.execute(
+            """SELECT card_name, kept FROM card_offers
+               WHERE game_id = 'native-1' AND player_id = 'p2'
+                 AND stage = 'draft' AND draft_number = 2
+               ORDER BY card_name"""
+        ).fetchall()
         connection.close()
-        self.assertEqual(pick_two["F"]["keptGames"], 1)
-        self.assertEqual(pick_two["F"]["avgEloGainKept"], 4)
-        self.assertEqual(pick_two["G"]["notKeptGames"], 1)
-        self.assertEqual(pick_two["G"]["avgEloGainNotKept"], 4)
-        self.assertEqual(pick_two["B"]["avgEloGainKept"], -4)
-        self.assertEqual(pick_four, [])
+        self.assertEqual([tuple(row) for row in p1_rows], [("A", 1), ("C", 0), ("F", 0), ("H", 0)])
+        self.assertEqual([tuple(row) for row in p2_rows], [("B", 0), ("D", 0), ("E", 1), ("G", 0)])
+        self.assertEqual(draft["A"]["keptGames"], 1)
+        self.assertEqual(draft["A"]["avgEloGainKept"], 4)
+        self.assertEqual(draft["F"]["notKeptGames"], 1)
+        self.assertEqual(draft["F"]["avgEloGainNotKept"], 4)
+        self.assertEqual(draft["E"]["avgEloGainKept"], -4)
+
+    def test_native_hstrand_moves_preserve_three_known_cards_when_fourth_is_missing(self) -> None:
+        replay = hstrand_game()
+        replay["moves"][7].pop("card_options")
+        source = Path(self.temporary.name) / "three-card-native"
+        source.mkdir()
+        (source / "game_native.json").write_text(json.dumps(replay))
+        database = Path(self.temporary.name) / "three-card-native.sqlite3"
+
+        result = rebuild(source, database)
+        connection = connect(database)
+        counts = connection.execute(
+            """SELECT player_id, count(*)
+               FROM card_offers
+               WHERE stage = 'draft' AND draft_number = 2
+               GROUP BY player_id ORDER BY player_id"""
+        ).fetchall()
+        connection.close()
+
+        self.assertEqual(result["offers"], 26)
+        self.assertEqual([tuple(row) for row in counts], [("p1", 3), ("p2", 3)])
 
 
 if __name__ == "__main__":

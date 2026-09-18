@@ -35,6 +35,10 @@ if PARQUET_MODE:
     from parquet_stats import (
         card_breakdown as parquet_card_breakdown,
         combination_stats as parquet_combination_stats,
+        gen1_mc_production_analysis as parquet_gen1_mc_production_analysis,
+        item_stats as parquet_item_stats,
+        played_card_stats as parquet_played_card_stats,
+        played_card_breakdown as parquet_played_card_breakdown,
         starting_hand_stats as parquet_starting_hand_stats,
         status as parquet_status,
     )
@@ -48,6 +52,15 @@ def integer_parameter(query: dict[str, list[str]], name: str) -> int | None:
         return int(value)
     except ValueError as error:
         raise ValueError(f"{name} must be an integer") from error
+
+
+def boolean_parameter(query: dict[str, list[str]], name: str) -> bool:
+    value = query.get(name, [""])[0].strip().lower()
+    if value in {"", "0", "false", "off", "no"}:
+        return False
+    if value in {"1", "true", "on", "yes"}:
+        return True
+    raise ValueError(f"{name} must be true or false")
 
 
 def query_filters(query: dict[str, list[str]]) -> tuple[str, int | None, int | None]:
@@ -85,6 +98,13 @@ def cohort_parameters(
 
 
 class Handler(SimpleHTTPRequestHandler):
+    def end_headers(self) -> None:
+        if not urlparse(self.path).path.startswith("/api/"):
+            self.send_header("Cache-Control", "no-cache, no-store, must-revalidate")
+            self.send_header("Pragma", "no-cache")
+            self.send_header("Expires", "0")
+        super().end_headers()
+
     def send_json(self, status_code: int, payload: object) -> None:
         body = json.dumps(payload, ensure_ascii=False, allow_nan=False).encode()
         self.send_response(status_code)
@@ -101,11 +121,12 @@ class Handler(SimpleHTTPRequestHandler):
                 return
             if route == "/api/starting-hands":
                 stage, draft_number, pick_number = query_filters(query)
+                smooth = boolean_parameter(query, "smooth")
                 prelude, maps, min_average_elo, max_average_elo = cohort_parameters(query)
                 self.send_json(HTTPStatus.OK, {
                     "data": parquet_starting_hand_stats(
                         PARQUET_DIRECTORY, stage, draft_number, pick_number,
-                        prelude=prelude, maps=maps, min_average_elo=min_average_elo, max_average_elo=max_average_elo,
+                        prelude=prelude, maps=maps, min_average_elo=min_average_elo, max_average_elo=max_average_elo, smooth=smooth,
                     ),
                     "source": parquet_status(
                         PARQUET_DIRECTORY, prelude=prelude, maps=maps, min_average_elo=min_average_elo, max_average_elo=max_average_elo,
@@ -115,6 +136,7 @@ class Handler(SimpleHTTPRequestHandler):
                 return
             if route == "/api/combinations":
                 stage, draft_number, pick_number = query_filters(query)
+                smooth = boolean_parameter(query, "smooth")
                 if pick_number is not None:
                     raise ValueError("Combinations do not support draft pick position")
                 combination_type = query.get("combo_type", ["card-card"])[0].strip()
@@ -123,7 +145,7 @@ class Handler(SimpleHTTPRequestHandler):
                     "combinations": parquet_combination_stats(
                         PARQUET_DIRECTORY,
                         combination_type=combination_type, stage=stage, draft_number=draft_number,
-                        prelude=prelude, maps=maps, min_average_elo=min_average_elo, max_average_elo=max_average_elo,
+                        prelude=prelude, maps=maps, min_average_elo=min_average_elo, max_average_elo=max_average_elo, smooth=smooth,
                     ),
                     "source": parquet_status(
                         PARQUET_DIRECTORY, prelude=prelude, maps=maps, min_average_elo=min_average_elo, max_average_elo=max_average_elo,
@@ -134,16 +156,70 @@ class Handler(SimpleHTTPRequestHandler):
                     },
                 })
                 return
+            if route == "/api/items":
+                kind = query.get("kind", [""])[0].strip()
+                prelude, maps, min_average_elo, max_average_elo = cohort_parameters(query, default_prelude=True)
+                self.send_json(HTTPStatus.OK, {
+                    "items": parquet_item_stats(
+                        PARQUET_DIRECTORY, kind=kind, prelude=prelude, maps=maps,
+                        min_average_elo=min_average_elo, max_average_elo=max_average_elo,
+                    ),
+                    "source": parquet_status(
+                        PARQUET_DIRECTORY, prelude=prelude, maps=maps,
+                        min_average_elo=min_average_elo, max_average_elo=max_average_elo,
+                    ),
+                    "filters": {"kind": kind},
+                })
+                return
+            if route == "/api/played":
+                generation = integer_parameter(query, "generation") or 1
+                prelude, maps, min_average_elo, max_average_elo = cohort_parameters(query, default_prelude=True)
+                self.send_json(HTTPStatus.OK, {
+                    "played": parquet_played_card_stats(
+                        PARQUET_DIRECTORY, generation=generation, prelude=prelude, maps=maps,
+                        min_average_elo=min_average_elo, max_average_elo=max_average_elo,
+                    ),
+                    "source": parquet_status(
+                        PARQUET_DIRECTORY, prelude=prelude, maps=maps,
+                        min_average_elo=min_average_elo, max_average_elo=max_average_elo,
+                    ),
+                    "filters": {"generation": generation},
+                })
+                return
+            if route == "/api/gen1-production":
+                prelude, maps, min_average_elo, max_average_elo = cohort_parameters(query, default_prelude=True)
+                self.send_json(HTTPStatus.OK, {
+                    "analysis": parquet_gen1_mc_production_analysis(
+                        PARQUET_DIRECTORY, prelude=prelude, maps=maps,
+                        min_average_elo=min_average_elo, max_average_elo=max_average_elo,
+                    ),
+                    "source": parquet_status(
+                        PARQUET_DIRECTORY, prelude=prelude, maps=maps,
+                        min_average_elo=min_average_elo, max_average_elo=max_average_elo,
+                    ),
+                })
+                return
             if route == "/api/card-breakdown":
                 name = query.get("card", [""])[0].strip()
                 if not name:
                     raise ValueError("card is required")
                 prelude, maps, min_average_elo, max_average_elo = cohort_parameters(query)
+                corporation = query.get("corporation", [""])[0].strip() or None
+                mode = query.get("mode", ["draft"])[0].strip().lower()
+                if mode not in {"draft", "played"}:
+                    raise ValueError("mode must be draft or played")
+                data = (parquet_played_card_breakdown(
+                    PARQUET_DIRECTORY, name, prelude=prelude, maps=maps,
+                    min_average_elo=min_average_elo, max_average_elo=max_average_elo, corporation=corporation,
+                ) if mode == "played" else parquet_card_breakdown(
+                    PARQUET_DIRECTORY, name, prelude=prelude, maps=maps,
+                    min_average_elo=min_average_elo, max_average_elo=max_average_elo, corporation=corporation,
+                ))
                 self.send_json(HTTPStatus.OK, {
                     "card": name,
-                    "data": parquet_card_breakdown(
-                        PARQUET_DIRECTORY, name, prelude=prelude, maps=maps, min_average_elo=min_average_elo, max_average_elo=max_average_elo,
-                    ),
+                    "mode": mode,
+                    "corporation": corporation,
+                    "data": data,
                 })
                 return
             self.send_json(HTTPStatus.NOT_FOUND, {"detail": "Unknown local API route"})

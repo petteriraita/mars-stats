@@ -3,9 +3,10 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="Locally calculated starting-hand, draft, and project-card combination statistics for Terraforming Mars on Board Game Arena." />
+  <meta name="description" content="Locally calculated drafting and project-card statistics for Terraforming Mars on Board Game Arena." />
   <title>Terraforming Mars Statistics</title>
-  <link rel="stylesheet" href="styles.css" />
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <link rel="stylesheet" href="styles.css?v=20260913-1" />
 </head>
 <body>
   <svg class="symbol-sheet" aria-hidden="true">
@@ -23,131 +24,39 @@
     <aside class="sidebar" id="sidebar">
       <div class="sidebar-heading"><strong>Navigation</strong><button id="collapseButton" type="button" aria-label="Collapse navigation">‹</button></div>
       <nav aria-label="Statistics pages">
-        <button class="nav-item active" data-page-link="starting-hands" type="button"><svg><use href="#i-cards"/></svg><span>Starting Hand</span></button>
-        <button class="nav-item" data-page-link="combinations" type="button"><svg><use href="#i-combo"/></svg><span>Combinations</span></button>
+        <button class="nav-item active" data-page-link="drafting" type="button"><svg><use href="#i-combo"/></svg><span>Drafting</span></button>
+        <button class="nav-item" data-page-link="gen1-production" type="button"><svg><use href="#i-cards"/></svg><span>Gen 1 Production</span></button>
         <button class="nav-item" data-page-link="settings" type="button"><svg><use href="#i-settings"/></svg><span>Settings</span></button>
       </nav>
     </aside>
     <div class="sidebar-scrim" id="sidebarScrim"></div>
 
     <main>
-      <section class="page active" data-page="starting-hands">
+      <section class="page active" data-page="drafting">
         <header class="page-header">
           <div>
-            <h1>Starting Hand Overview</h1>
-            <p>Average Elo Gain shows the selected players' actual rating change when each card was kept, not kept, or offered</p>
+            <h1>Drafting</h1>
+            <p>Analyze draft buying, plus whether bought cards were played through the optional Corp + Card view.</p>
           </div>
-          <button class="button" id="refreshButton" type="button"><svg><use href="#i-refresh"/></svg>Refresh Dataset</button>
         </header>
 
-        <div class="source-status loading" id="sourceStatus" role="status" aria-live="polite">
-          <span class="status-dot"></span><span id="sourceMessage">Querying the local Parquet database…</span>
-        </div>
-
-        <div class="starting-layout">
-          <aside class="filter-card panel">
-            <h2>Filters</h2>
-            <div>
-              <strong>Active cohort</strong>
-              <p class="muted" id="startingCohortSummary"></p>
-            </div>
-            <label>Research Generation<input id="startingDraftNumber" type="number" min="1" inputmode="numeric" placeholder="Showing starting hand — type a generation" /></label>
-            <p class="filter-note">Leave generation empty for Starting Hand. For later generations, “kept” means bought after drafting. Every card row remains visible; Average Elo and Win Rate values based on fewer than 100 observations are shown as —. “Keep cards in view” freezes the current order while cohorts change.</p>
-            <label>Search Cards<input id="startingSearch" type="search" placeholder="Search by card name..." /></label>
-          </aside>
-
-          <div class="starting-results">
-            <div class="starting-toolbar">
-              <div class="toolbar-control">
-                <span>Maps</span>
-                <div class="view-toggle" aria-label="Map filters">
-                  <button class="active" data-map-filter="Tharsis" type="button" aria-pressed="true">Tharsis</button>
-                  <button class="active" data-map-filter="Hellas" type="button" aria-pressed="true">Hellas</button>
-                  <button class="active" data-map-filter="Elysium" type="button" aria-pressed="true">Elysium</button>
-                  <button class="active" data-map-filter="Vastitas Borealis" type="button" aria-pressed="true">Vastitas</button>
-                  <button class="active" data-all-maps type="button" aria-pressed="true">All maps</button>
-                </div>
-              </div>
-              <div class="toolbar-control">
-                <span>Map selection</span>
-                <div class="view-toggle"><button data-multi-map-toggle type="button" aria-pressed="false">Select multiple</button></div>
-              </div>
-              <div class="toolbar-control">
-                <span>Average table Elo</span>
-                <div class="view-toggle" aria-label="Average table Elo range">
-                  <button data-elo-setting="all" type="button">All</button>
-                  <button class="active" data-elo-setting="450" type="button">450+</button>
-                  <button data-elo-setting="500" type="button">500+</button>
-                  <button data-elo-setting="600" type="button">600+</button>
-                </div>
-              </div>
-              <div class="toolbar-control">
-                <span>Comparison</span>
-                <div class="view-toggle" aria-label="Card-order comparison">
-                  <button id="keepCardsInView" type="button" aria-pressed="false">Keep cards in view</button>
-                </div>
-              </div>
-            </div>
-            <section class="panel results-panel" id="startingTableView">
-              <div class="results-heading">
-                <div><h2>Starting Hand Rankings</h2><p id="startingShowing">Loading cards…</p></div>
-                <label>Rows per page:<select id="rowsPerPage"><option>10</option><option selected>25</option><option>50</option><option>100</option></select></label>
-              </div>
-              <div class="table-scroll">
-                <table>
-                  <thead><tr>
-                    <th><button data-start-sort="name" type="button">Card <span>↕</span></button></th>
-                    <th><button data-start-sort="eloKept" type="button">Avg Elo Gain · Kept <span>↓</span></button></th>
-                    <th><button data-start-sort="eloNotKept" type="button">Avg Elo Gain · Not Kept <span>↕</span></button></th>
-                    <th><button data-start-sort="winRate" type="button">Win Rate · Kept <span>↕</span></button></th>
-                    <th><button data-start-sort="keepRate" type="button">Keep Rate <span>↕</span></button></th>
-                    <th><button data-start-sort="offered" type="button">Offers <span>↕</span></button></th>
-                    <th><button data-start-sort="eloOffered" type="button">Avg Elo Gain · Offered <span>↕</span></button></th>
-                  </tr></thead>
-                  <tbody id="startingTable"><tr><td colspan="6" class="empty-cell">Loading live statistics…</td></tr></tbody>
-                </table>
-              </div>
-              <div class="pagination"><button id="previousPage" type="button">Previous</button><span id="pageNumber">Page 1</span><button id="nextPage" type="button">Next</button></div>
-            </section>
-
-          </div>
-        </div>
-
-        <section class="card-detail panel" id="startingDetail" hidden>
-          <div class="detail-title"><span>STARTING HAND ANALYSIS</span><h2 id="detailCardName"></h2></div>
-          <div class="detail-counts">
-            <div><strong id="detailOffered">—</strong><span>Offered games</span></div>
-            <div><strong id="detailKeepRate">—</strong><span>Keep rate</span></div>
-            <div><strong id="detailKept">—</strong><span>Kept</span></div>
-            <div><strong id="detailPassed">—</strong><span>Not kept</span></div>
-            <div><strong id="detailWinRate">—</strong><span>Kept win rate</span></div>
-          </div>
-          <div class="elo-cards">
-            <article><span>Average Elo gain · Kept</span><strong id="eloKept">—</strong></article>
-            <article><span>Average Elo gain · Not kept</span><strong id="eloPassed">—</strong></article>
-            <article><span>Average Elo gain · Offered</span><strong id="eloOffered">—</strong></article>
-          </div>
-          <div class="detail-breakdown">
-            <h3>Offer stage breakdown</h3>
-            <div class="table-scroll">
-              <table>
-                <thead><tr><th>Stage</th><th>Generation</th><th>Offered</th><th>Kept / bought</th><th>Avg Elo Gain · Kept</th><th>Avg Elo Gain · Not Kept</th><th>Avg Elo Gain · Offered</th></tr></thead>
-                <tbody id="draftBreakdown"></tbody>
-              </table>
-            </div>
-          </div>
-        </section>
-      </section>
-
-      <section class="page" data-page="combinations">
-        <header class="page-header"><div><h1>Combinations</h1><p>Discover how pairs of bought starting-hand cards—or cards bought in a later generation—perform together.</p></div><button class="button" id="refreshCombinations" type="button"><svg><use href="#i-refresh"/></svg>Refresh Dataset</button></header>
         <div class="source-status loading" id="combinationStatus" role="status" aria-live="polite"><span class="status-dot"></span><span id="combinationMessage">Querying the local Parquet database…</span></div>
-        <div class="combination-types" aria-label="Combination type">
-          <button class="active" data-combination-type="corp-prelude" type="button">Corp + Prelude</button>
-          <button data-combination-type="corp-card" type="button">Corp + Card</button>
+
+        <div class="combination-types" aria-label="Draft analysis type">
+          <button class="active" data-combination-type="corp-card" type="button">Corp + Card</button>
+          <button data-combination-type="corporations" type="button">Corporations</button>
+          <button data-combination-type="corp-prelude" type="button">Corp + Prelude</button>
           <button data-combination-type="prelude-prelude" type="button">Prelude + Prelude</button>
           <button data-combination-type="prelude-card" type="button">Prelude + Card</button>
           <button data-combination-type="card-card" type="button">Card + Card</button>
+        </div>
+        <div class="metric-mode-tabs" id="corpCardMetricTabs" aria-label="Corp plus card values">
+          <span>Corp + Card values</span>
+          <div class="view-toggle">
+            <button class="active" data-corp-card-mode="draft" type="button" aria-pressed="true">Draft buying</button>
+            <button data-corp-card-mode="played" type="button" aria-pressed="false">Play decisions</button>
+          </div>
+          <label class="elo-adjust-toggle" id="eloAdjustControl" title="Subtract this corporation's average Elo gain in the selected cohort"><input id="adjustCorporationElo" type="checkbox" /> Adjust Elo for corporation</label>
         </div>
         <div class="combination-layout">
           <aside class="filter-card panel">
@@ -156,12 +65,23 @@
               <strong>Active cohort</strong>
               <p class="muted" id="combinationCohortSummary"></p>
             </div>
-            <label>Bought in Generation<input id="combinationDraftNumber" type="number" min="1" inputmode="numeric" placeholder="Starting hand" /></label>
-            <p class="filter-note" id="combinationDraftNote">Leave empty for Starting Hand. A generation uses project cards bought after that generation’s draft, whether or not they were later played.</p>
-            <label><span id="combinationSlot1FilterLabel">Corporation</span><input id="combinationSearch1" type="search" placeholder="Search corporation..." /></label>
-            <label><span id="combinationSlot2FilterLabel">Prelude</span><input id="combinationSearch2" type="search" placeholder="Search prelude..." /></label>
-            <p class="filter-note">Every combination remains visible. Elo, win-rate, and lift values based on fewer than 100 games are shown as —. The values beneath each item show its kept and not-kept Elo baselines.</p>
+            <label id="combinationGenerationControl"><span id="combinationGenerationLabel">Draft generation</span><input id="combinationDraftNumber" type="number" min="2" inputmode="numeric" placeholder="Starting hand" /></label>
+            <p id="combinationDraftNote" hidden></p>
+            <label id="combinationSearch1Label"><span id="combinationSlot1FilterLabel">Corporation (optional)</span><input id="combinationSearch1" type="search" placeholder="Leave empty for card rankings..." /></label>
+            <div class="search-input-grid" id="combinationCardSearches">
+              <label id="combinationSearch2Label"><span id="combinationSlot2FilterLabel">Card</span><input id="combinationSearch2" type="search" placeholder="Search card..." /></label>
+              <label id="combinationSearch3Label" hidden><span id="combinationSlot3FilterLabel">Card 2</span><input id="combinationSearch3" type="search" placeholder="Search second card..." /></label>
+              <label id="combinationSearch4Label" hidden><span id="combinationSlot4FilterLabel">Card 3</span><input id="combinationSearch4" type="search" placeholder="Search third card..." /></label>
+              <label id="combinationSearch5Label" hidden><span id="combinationSlot5FilterLabel">Card 4</span><input id="combinationSearch5" type="search" placeholder="Search fourth card..." /></label>
+            </div>
+            <p id="combinationReliabilityNote" hidden></p>
+            <label>Minimum games for metrics<input id="combinationMinimumGames" type="number" min="1" inputmode="numeric" placeholder="Blank = 100; type 7 to show 7-game metrics" /></label>
+            <div class="ai-context">
+              <button id="copyAiContext" type="button">Copy AI context</button>
+              <textarea id="aiContext" readonly aria-label="Current statistics context for AI"></textarea>
+            </div>
           </aside>
+
           <div class="combination-results">
             <div class="starting-toolbar combination-toolbar">
               <div class="toolbar-control">
@@ -189,30 +109,116 @@
               </div>
             </div>
             <section class="panel results-panel">
-            <div class="results-heading"><div><h2 id="combinationRankingTitle">Corp + Prelude Rankings</h2><p id="combinationShowing">Loading combinations…</p></div><label>Rows per page:<select id="combinationRowsPerPage"><option>10</option><option selected>25</option><option>50</option><option>100</option></select></label></div>
-            <div class="table-scroll">
-              <table class="combination-table">
-                <thead><tr>
-                  <th><button data-combo-sort="name1" type="button"><span id="combinationSlot1Heading">Corporation</span> <span>↕</span></button></th>
-                  <th><button data-combo-sort="name2" type="button"><span id="combinationSlot2Heading">Prelude</span> <span>↕</span></button></th>
-                  <th><button data-combo-sort="gameCount" type="button">Games <span>↕</span></button></th>
-                  <th><button data-combo-sort="avgEloChange" type="button">Avg Elo <span>↕</span></button></th>
-                  <th><button data-combo-sort="winRate" type="button">Win Rate <span>↕</span></button></th>
-                  <th><button data-combo-sort="lift1" type="button">Lift vs <span id="combinationLift1Heading">Corporation</span> <span>↕</span></button></th>
-                  <th><button data-combo-sort="lift2" type="button">Lift vs <span id="combinationLift2Heading">Prelude</span> <span>↕</span></button></th>
-                  <th><button data-combo-sort="totalLift" type="button">Total Lift <span>↕</span></button></th>
-                </tr></thead>
-                <tbody id="combinationTable"><tr><td colspan="8" class="empty-cell">Loading live statistics…</td></tr></tbody>
-              </table>
-            </div>
-            <div class="pagination"><button id="previousCombinationPage" type="button">Previous</button><span id="combinationPageNumber">Page 1</span><button id="nextCombinationPage" type="button">Next</button></div>
+              <div class="results-heading"><div><h2 id="combinationRankingTitle">Card Rankings</h2><p id="combinationShowing">Loading statistics…</p></div><label>Rows per page:<select id="combinationRowsPerPage"><option>10</option><option selected>25</option><option>50</option><option>100</option></select></label></div>
+              <div class="table-scroll">
+                <table class="combination-table">
+                  <thead><tr>
+                    <th data-pair-only-column><button data-combo-sort="name1" type="button"><span id="combinationSlot1Heading">Corporation</span> <span>↕</span></button></th>
+                    <th><button data-combo-sort="name2" type="button"><span id="combinationSlot2Heading">Card</span> <span>↕</span></button></th>
+                    <th><button data-combo-sort="gameCount" type="button"><span id="combinationGamesHeading">Drafted Games</span> <span>↕</span></button></th>
+                    <th data-keep-rate-column><button data-combo-sort="keepRate" type="button"><span id="combinationKeepRateHeading">Bought Rate</span> <span>↕</span></button></th>
+                    <th><button data-combo-sort="avgEloChange" type="button"><span id="combinationKeptEloHeading">Avg Elo · Bought</span> <span>↕</span></button></th>
+                    <th data-card-metric-column><button data-combo-sort="avgEloNotKept" type="button"><span id="combinationNotKeptEloHeading">Avg Elo · Not Bought</span> <span>↕</span></button></th>
+                    <th><button data-combo-sort="winRate" type="button"><span id="combinationKeptWinRateHeading">Win Rate · Bought</span> <span>↕</span></button></th>
+                    <th data-pair-only-column data-lift-column><button data-combo-sort="lift1" type="button">Lift vs <span id="combinationLift1Heading">Corporation</span> <span>↕</span></button></th>
+                    <th data-pair-only-column data-lift-column><button data-combo-sort="lift2" type="button">Lift vs <span id="combinationLift2Heading">Card</span> <span>↕</span></button></th>
+                    <th data-pair-only-column data-lift-column><button data-combo-sort="totalLift" type="button">Total Lift <span>↕</span></button></th>
+                  </tr></thead>
+                  <tbody id="combinationTable"><tr><td colspan="5" class="empty-cell">Loading live statistics…</td></tr></tbody>
+                </table>
+              </div>
+              <div class="pagination"><button id="previousCombinationPage" type="button">Previous</button><span id="combinationPageNumber">Page 1</span><button id="nextCombinationPage" type="button">Next</button></div>
+            </section>
+            <section class="panel card-detail" id="cardDetail" hidden>
+              <div class="card-detail-heading">
+                <div class="detail-title">
+                  <span id="cardDetailMode">DRAFT BUYING BY GENERATION</span>
+                  <h2 id="cardDetailName">Card</h2>
+                </div>
+                <button id="closeCardDetail" type="button" aria-label="Close card details">Close</button>
+              </div>
+              <p class="filter-note" id="cardDetailNote"></p>
+              <div class="table-scroll">
+                <table class="combination-table card-detail-table">
+                  <thead><tr>
+                    <th>Generation</th>
+                    <th id="cardDetailAvailableHeading">Drafted</th>
+                    <th id="cardDetailPositiveCountHeading">Bought</th>
+                    <th id="cardDetailNegativeCountHeading">Not Bought</th>
+                    <th id="cardDetailRateHeading">Bought Rate</th>
+                    <th id="cardDetailPositiveEloHeading">Avg Elo · Bought</th>
+                    <th id="cardDetailNegativeEloHeading">Avg Elo · Not Bought</th>
+                    <th id="cardDetailWinHeading">Win Rate · Bought</th>
+                  </tr></thead>
+                  <tbody id="cardDetailTable"></tbody>
+                </table>
+              </div>
             </section>
           </div>
         </div>
       </section>
 
+      <section class="page" data-page="gen1-production">
+        <header class="page-header">
+          <div><h1>Gen 1 Production</h1><p>Estimate the early-game MC value of production from corporation-stratified play results.</p></div>
+          <button class="button" id="refreshGen1Production" type="button"><svg><use href="#i-refresh"/></svg>Refresh Analysis</button>
+        </header>
+        <div class="source-status loading" id="gen1ProductionStatus" role="status" aria-live="polite"><span class="status-dot"></span><span id="gen1ProductionMessage">Open this page to fit the production model.</span></div>
+        <div class="starting-toolbar combination-toolbar">
+          <div class="toolbar-control">
+            <span>Maps</span>
+            <div class="view-toggle" aria-label="Production model map filters">
+              <button class="active" data-map-filter="Tharsis" type="button" aria-pressed="true">Tharsis</button>
+              <button class="active" data-map-filter="Hellas" type="button" aria-pressed="true">Hellas</button>
+              <button class="active" data-map-filter="Elysium" type="button" aria-pressed="true">Elysium</button>
+              <button class="active" data-map-filter="Vastitas Borealis" type="button" aria-pressed="true">Vastitas</button>
+              <button class="active" data-all-maps type="button" aria-pressed="true">All maps</button>
+            </div>
+          </div>
+          <div class="toolbar-control"><span>Map selection</span><div class="view-toggle"><button data-multi-map-toggle type="button" aria-pressed="false">Select multiple</button></div></div>
+          <div class="toolbar-control">
+            <span>Average table Elo</span>
+            <div class="view-toggle" aria-label="Production model average table Elo range">
+              <button data-elo-setting="all" type="button">All</button>
+              <button class="active" data-elo-setting="450" type="button">450+</button>
+              <button data-elo-setting="500" type="button">500+</button>
+              <button data-elo-setting="600" type="button">600+</button>
+            </div>
+          </div>
+        </div>
+        <section class="panel results-panel" id="gen1ProductionPanel">
+          <div class="results-heading">
+            <div>
+              <h2>Generation 1 Production and Tag Values</h2>
+              <p id="gen1ProductionCohort">Loading current cohort…</p>
+            </div>
+          </div>
+          <p class="filter-note">This model estimates six production types and four strategic tags from corporation-stratified Gen-1 played-versus-not-played Elo differences. Elo per MC is calibrated from the clean MC-production anchors; the remaining values are fitted together.</p>
+          <div class="detail-counts">
+            <div><strong id="gen1EloPerMc">—</strong><span>Elo per MC efficiency</span></div>
+            <div><strong id="gen1ModelError">—</strong><span>Weighted model error</span></div>
+            <div><strong id="gen1AnchorCount">—</strong><span>Anchor cards</span></div>
+            <div><strong>1 MC</strong><span>Assumed Gen-1 VP value</span></div>
+          </div>
+          <h3>Production values</h3>
+          <div class="detail-counts" id="gen1ProductionValues"></div>
+          <h3>Tag values</h3>
+          <div class="detail-counts" id="gen1TagValues"></div>
+          <div class="table-scroll">
+            <table class="combination-table">
+              <thead><tr>
+                <th>Card</th><th>Production change</th><th>Total cost</th><th>Gen-1 plays</th>
+                <th>Observed Elo delta</th><th>Predicted Elo delta</th><th>Modeled fair value</th><th>Efficiency</th>
+              </tr></thead>
+              <tbody id="gen1ProductionTable"><tr><td colspan="8" class="empty-cell">Loading production model…</td></tr></tbody>
+            </table>
+          </div>
+          <p class="filter-note" id="gen1ProductionAssumptions"></p>
+        </section>
+      </section>
+
       <section class="page settings-page" data-page="settings">
-        <header class="page-header"><div><h1>Settings</h1><p>Choose the player population used for both statistics pages.</p></div><button class="button" id="resetSettings" type="button">Restore Defaults</button></header>
+        <header class="page-header"><div><h1>Settings</h1><p>Choose the player population used for drafting statistics.</p></div><button class="button" id="resetSettings" type="button">Restore Defaults</button></header>
         <div class="source-status"><span class="status-dot"></span><span id="settingsSummary"></span></div>
         <div class="starting-layout">
           <aside class="filter-card panel">
@@ -224,12 +230,19 @@
             </div>
           </aside>
           <section class="panel results-panel">
-            <div class="results-heading"><div><h2>Competitive Defaults</h2><p>Prelude on · 450+ average table Elo · Tharsis, Hellas, Elysium and Vastitas Borealis</p><p>Choose maps and the Elo range directly above the Starting Hand table.</p></div></div>
+            <div class="results-heading"><div><h2>Competitive Defaults</h2><p>Prelude on · 450+ average table Elo · Tharsis, Hellas, Elysium and Vastitas Borealis</p><p>Choose maps and the Elo range directly above the Drafting table.</p></div></div>
             <div class="detail-counts">
               <div><strong>2</strong><span>Players</span></div>
               <div><strong>On</strong><span>Draft</span></div>
               <div><strong>Off</strong><span>Colonies</span></div>
               <div><strong>100</strong><span>Metrics threshold</span></div>
+            </div>
+            <div class="method-notes">
+              <h3>Drafting and metrics</h3>
+              <p>Leave the draft-generation field empty for the starting hand. Gen 2 is the first normal four-card research draft; later generations follow in order. “Drafted” means actively selected during the rotating draft and “Bought” means included in the final purchase.</p>
+              <p>Draft-card data in the public export generally contains the three explicit selections; the automatically received fourth card is not identified there. Metrics are hidden below the chosen observation threshold.</p>
+              <p>Displayed starting-hand and draft performance values are smoothed: 60% selected decision point, 20% each adjacent point. At an edge, the available neighbor has 25% weight. Offer counts remain exact.</p>
+              <p>In Corp + Card, “Adjust Elo for corporation” subtracts that corporation's average Elo gain for the selected maps, Prelude setting, and table-Elo cohort. It affects both outcomes, sorting, card details, and copied AI context; it does not change counts or rates.</p>
             </div>
           </section>
         </div>
@@ -239,6 +252,6 @@
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
   <div class="card-preview" id="cardPreview" hidden><img id="cardPreviewImage" alt="" /><div><span id="cardPreviewKind"></span><strong id="cardPreviewName"></strong></div></div>
-  <script src="app.js"></script>
+  <script src="app.js?v=20260913-1"></script>
 </body>
 </html>

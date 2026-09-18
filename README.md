@@ -1,6 +1,6 @@
 # Terraforming Mars Statistics
 
-A local statistics engine and interface for **Starting Hand** and **Project Card Combinations**. The browser talks only to the local server; DuckDB calculates every result from the downloaded TFMStats Parquet database.
+A local statistics engine and interface for **Drafting** and project-card play decisions. The browser talks only to the local server; DuckDB calculates every result from the downloaded TFMStats Parquet database.
 
 ## Run
 
@@ -56,27 +56,27 @@ The interface then applies competitive defaults chosen for this project:
 - minimum 450 average table Elo, calculated across both players;
 - every card row retained; individual Average Elo and Win Rate cells with fewer than 100 observations suppressed.
 
-These settings currently retain 95,816 games, 191,638 player-game rows, and 1.91 million starting-hand offers. They persist in the browser. Prelude is changed on Settings; the four maps and average-table-Elo range are selected directly above the Starting Hand table.
+These settings currently retain 95,816 games and 191,638 player-game rows. They persist in the browser. Prelude is changed on Settings; the four maps and average-table-Elo range are selected directly above the Drafting table.
 
-Map buttons are single-select by default: clicking a map immediately replaces the previous selection. **Select multiple** enables additive toggling, and **All maps** restores all four supported maps in one click. The selection is shared by Starting Hand and Combinations.
+Map buttons are single-select by default: clicking a map immediately replaces the previous selection. **Select multiple** enables additive toggling, and **All maps** restores all four supported maps in one click.
 
-The browser remembers the active page, research/bought generation, searches, rows per page, pagination, sorting, combination type, and card-order lock across reloads. Card previews close on click/tap, scrolling, resizing, page changes, window blur, or Escape.
+The browser remembers the active page, draft generation, searches, rows per page, pagination, sorting, analysis type, and selected card across reloads. Clicking a project card opens an all-generation detail table; it shows bought/not-bought results in Draft buying mode and played/not-played results in Play decisions mode. Card previews close on click/tap, scrolling, resizing, page changes, window blur, or Escape.
 
 Available Elo ranges are All, 450+, 500+, and 600+.
 
-Starting Hand reports offers, keep rate, kept win rate, and raw **Average Elo Gain** when bought, not bought, and offered. Kept Win Rate is the percentage of kept-card player-games where the player finished first. It is the mean final Elo change of the players in that card group; no cohort baseline is subtracted. Leaving Research Generation blank displays the initial Starting Hand; entering a generation displays locally calculated research-draft statistics, with “kept” meaning bought after the draft.
+Every draft row remains in the table, but an Average Elo or Win Rate value below the selected observation threshold is displayed as `—`. This prevents a handful of results from appearing as a reliable extreme in smaller cohorts. Draft Generation reloads immediately as soon as a number is typed.
 
-Every card remains in the table, but an Average Elo or Win Rate value based on fewer than 100 observations is displayed as `—`. This prevents a handful of results from appearing as a reliable extreme in smaller cohorts.
-
-Enable **Keep cards in view** before changing a cohort to preserve the current page and card order while only the statistics update. Selecting a table sort unlocks the order. Draft Generation reloads immediately as soon as a number is typed.
-
-Research-draft analysis uses `gamecards.DrawnGen` and `KeptGen` to calculate offered, bought, and not-bought metrics by generation. `KeptGen` comes from the all-player `cards_kept` event; the separate `BoughtGen` field is only populated for a small legacy/player-perspective subset. The public export does not retain rotating-pack pick position, so pick position is not shown. Exact pick-position analysis still requires raw replay JSON; the legacy importer in `stats_engine.py` remains available for that data.
+Research-draft analysis uses `gamecards.DraftedGen` for cards positively identified as a player's active selections during the rotating draft and `KeptGen` for the subset bought afterward. The automatically received fourth card is usually not attributable in the public export and is therefore missing non-randomly.
 
 Some exported `gamecards` rows contain parser artifacts (for example Undo controls, corporation/prelude names, unresolved `card_main_*` IDs, or whole-hand descriptions). Draft analysis accepts only names present in the clean 215-card Starting Hand project catalog, so these malformed rows are excluded.
 
-Combinations uses the same Prelude, map, and average-table-Elo cohort. It mirrors the TFMStats modes: Corp + Prelude, Corp + Card, Prelude + Prelude, Prelude + Card, and Card + Card. With no generation entered, project cards are those actually bought in the initial hand (`startinghandcards.Kept = TRUE`). It reports raw Average Elo Gain, win rate, lift versus each item's individual baseline, and each item's kept/not-kept Elo baselines. No row-count filter is applied; metrics for combinations with fewer than 100 games are displayed as `—` while the rows remain available. Types containing a project card can instead use cards bought after a specified research draft (`KeptGen = DrawnGen`). Neither mode requires the card to have been played (`PlayedGen`).
+Drafting uses the same Prelude, map, and average-table-Elo cohort. Leave Draft generation empty to return to Starting Hand. Generation 2 is the first normal four-card research draft, generation 3 is the second, and so on. Generation-1 rows are excluded because source-log sampling shows that they contain opening setup and card-effect acquisitions rather than the first research draft. Other card-effect draws are also excluded. The page can rank cards directly or condition them on a corporation, prelude, or another drafted card. “Drafted Games” means the card is positively identified as one of the player's active draft selections; “Bought” means it was then present in `cards_kept`. It reports Average Elo Gain, win rate, bought/not-bought comparisons, and pair lifts. For Corp + Card, the optional corporation adjustment subtracts that corporation's cohort-wide average Elo gain from both bought/not-bought or played/not-played values. No row-count filter is applied; metrics below the selected reliability threshold are displayed as `—` while rows remain available.
 
-Starting Hand and Combinations card thumbnails and hover previews are stored locally under `assets/cards`. They can be refreshed with `.venv/bin/python download_card_images.py`; the source is the public [terraforming-mars/card-images](https://github.com/terraforming-mars/card-images) datastore.
+The **Gen 1 Production** navigation page estimates MC, steel, titanium, energy, heat, and plant production plus Earth, Space, Jovian, and Science tag values from 26 auditable anchor cards. For each card it compares Gen-1 players with the same corporation who did and did not play that card, calibrates Elo per MC of efficiency, then uses non-negative weighted least squares for interpretable values. Card costs, production, tags, VP assumptions, and model notes live in `data/gen1_production_cards.json` rather than being embedded in queries. These are strategic associations from card-play decisions, not guaranteed causal prices.
+
+Corp + Card defaults to draft-buying metrics. Its optional **Play decisions** tab replaces those columns with card availability, played rate, played/not-played Elo, and played win rate. It defaults to one aggregated row per card; entering a Corporation search switches it to corporation-conditioned rows. There is no separate Played page.
+
+Drafting card thumbnails and hover previews are stored locally under `assets/cards`. They can be refreshed with `.venv/bin/python download_card_images.py`; the source is the public [terraforming-mars/card-images](https://github.com/terraforming-mars/card-images) datastore.
 
 ## Install from scratch
 

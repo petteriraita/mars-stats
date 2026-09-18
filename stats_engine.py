@@ -298,7 +298,14 @@ def move_generation(move: Mapping[str, Any]) -> int:
 
 
 def hstrand_offers(game: Mapping[str, Any], player_id: str, player: Mapping[str, Any]) -> list[dict[str, Any]]:
-    """Reconstruct offers from the native HStrand parser's Move fields."""
+    """Reconstruct purchase choices from the native HStrand move fields.
+
+    A research draft observation is one of the four cards in the player's hand
+    after pack rotation is complete. It is not every card the player saw and it
+    is not an individual pick opportunity. BGA records three explicit
+    ``card_drafted`` choices and exposes the automatically assigned fourth card
+    as the player's final one-card ``card_options`` entry.
+    """
     observations: list[dict[str, Any]] = []
     starting_hand = first(player, ["starting_hand", "startingHand"], {})
     kept_starting = set(card_names(first(starting_hand, ["project_cards", "projectCards"])))
@@ -323,7 +330,8 @@ def hstrand_offers(game: Mapping[str, Any], player_id: str, player: Mapping[str,
             } for card in offered)
             break
 
-    # HStrand marks the start of every draft with a pass move containing the 4-card packs.
+    # A draft starts with one four-card pack per player. Depending on the parser
+    # version, that move can be labelled either "pass" or "draft".
     index = 0
     while index < len(moves):
         move = moves[index]
@@ -333,45 +341,73 @@ def hstrand_offers(game: Mapping[str, Any], player_id: str, player: Mapping[str,
         action = str(first(move, ["action_type", "actionType"], "")).lower()
         options = first(move, ["card_options", "cardOptions"])
         packs = [card_names(cards) for cards in options.values()] if isinstance(options, Mapping) else []
-        if action != "pass" or not packs or not all(len(pack) == 4 for pack in packs):
+        if action not in {"pass", "draft"} or not packs or not all(len(pack) == 4 for pack in packs):
             index += 1
             continue
         generation = move_generation(move)
-        pack_states = [{"remaining": list(pack), "picks": 0} for pack in packs]
+        participants = {str(option_player) for option_player in options}
+        drafted: dict[str, list[str]] = {}
+        final_cards: dict[str, str] = {}
+        kept: dict[str, set[str]] = {}
         index += 1
         while index < len(moves):
             draft_move = moves[index]
             if not isinstance(draft_move, Mapping):
                 index += 1
                 continue
-            draft_action = str(first(draft_move, ["action_type", "actionType"], "")).lower()
-            if draft_action == "buy_card":
+            draft_generation = move_generation(draft_move)
+            draft_options = first(draft_move, ["card_options", "cardOptions"])
+            next_packs = [card_names(cards) for cards in draft_options.values()] if isinstance(draft_options, Mapping) else []
+            if draft_generation and draft_generation != generation:
                 break
-            if draft_action == "pass" and first(draft_move, ["card_options", "cardOptions"]):
+            if next_packs and all(len(pack) == 4 for pack in next_packs):
                 break
-            if draft_action == "draft":
-                selected_names = card_names(first(draft_move, ["card_drafted", "cardDrafted", "selected_card", "selectedCard"]))
-                selecting_player = str(first(draft_move, ["player_id", "playerId"], ""))
-                if selected_names and selecting_player == player_id:
-                    selected = selected_names[0]
-                    pack = next((candidate for candidate in pack_states if selected in candidate["remaining"]), None)
-                    if pack is not None:
-                        pick_number = as_int(pack["picks"]) + 1
-                        observations.extend({
-                            "stage": "draft", "draft_number": generation, "pick_number": pick_number,
-                            "card_name": card, "kept": int(card == selected),
-                        } for card in pack["remaining"])
-                        pack["remaining"].remove(selected)
-                        pack["picks"] = pick_number
-                elif selected_names:
-                    selected = selected_names[0]
-                    pack = next((candidate for candidate in pack_states if selected in candidate["remaining"]), None)
-                    if pack is not None:
-                        pack["remaining"].remove(selected)
-                        pack["picks"] = as_int(pack["picks"]) + 1
+
+            selected_names = card_names(first(
+                draft_move,
+                ["card_drafted", "cardDrafted", "selected_card", "selectedCard"],
+            ))
+            selecting_player = str(first(draft_move, ["player_id", "playerId"], ""))
+            # Keep-confirmation moves sometimes repeat an earlier card_drafted
+            # value. cards_kept is authoritative there, so do not count the
+            # repeated value as another pick.
+            cards_kept = first(draft_move, ["cards_kept", "cardsKept"])
+            if selected_names and selecting_player and not isinstance(cards_kept, Mapping):
+                picks = drafted.setdefault(selecting_player, [])
+                for selected in selected_names:
+                    if selected not in picks:
+                        picks.append(selected)
+
+            if isinstance(draft_options, Mapping):
+                for option_player, cards in draft_options.items():
+                    names = card_names(cards)
+                    if len(names) == 1:
+                        final_cards[str(option_player)] = names[0]
+
+            if isinstance(cards_kept, Mapping):
+                for keeping_player, cards in cards_kept.items():
+                    kept[str(keeping_player)] = set(card_names(cards))
             index += 1
-        # The fourth card is assigned automatically and has no reliable player move, so it is not inferred.
-        index += 1
+            if participants and participants.issubset(kept):
+                break
+
+        hand = list(dict.fromkeys([
+            *drafted.get(player_id, []),
+            *([final_cards[player_id]] if player_id in final_cards else []),
+            *kept.get(player_id, set()),
+        ]))
+        # Older logs may lack the automatically assigned fourth card. Preserve
+        # the three explicit final-hand picks rather than discarding the entire
+        # player-draft; newer logs contribute all four cards.
+        if 3 <= len(hand) <= 4:
+            bought = kept.get(player_id, set())
+            observations.extend({
+                "stage": "draft",
+                "draft_number": generation,
+                "pick_number": 0,
+                "card_name": card,
+                "kept": int(card in bought),
+            } for card in hand)
     return observations
 
 
